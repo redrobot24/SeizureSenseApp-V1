@@ -73,13 +73,27 @@ struct SettingsView: View {
                     
                     // Settings Buttons Section
                     VStack(spacing: 16) {
-                        settingsButton(title: "Data Sharing", icon: "square.and.arrow.up")
-                        settingsButton(title: "Messaging", icon: "message")
-                        settingsButton(title: "Notifications", icon: "bell")
-                        settingsButton(title: "Alarm Settings", icon: "alarm")
-                        settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3")
-                        settingsButton(title: "Wi-Fi", icon: "wifi")
-                        settingsButton(title: "Bluetooth", icon: "bolt.horizontal")
+                        settingsButton(title: "Data Sharing", icon: "square.and.arrow.up"){
+                            
+                        }
+                        settingsButton(title: "Messaging", icon: "message"){
+                            
+                        }
+                        settingsButton(title: "Notifications", icon: "bell"){
+                            
+                        }
+                        settingsButton(title: "Alarm Settings", icon: "alarm"){
+                            
+                        }
+                        settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3"){
+                            
+                        }
+                        settingsButton(title: "Wi-Fi", icon: "wifi"){
+                            
+                        }
+                        settingsButton(title: "Bluetooth", icon: "bolt.horizontal"){
+                            
+                        }
                     }
                     .padding(.horizontal)
                     
@@ -105,10 +119,8 @@ struct SettingsView: View {
     }
     
     // Reusable button view (so we can keep using the exact same button style)
-    func settingsButton(title: String, icon: String) -> some View {
-        Button(action: {
-            
-        }) {
+    func settingsButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 20))
