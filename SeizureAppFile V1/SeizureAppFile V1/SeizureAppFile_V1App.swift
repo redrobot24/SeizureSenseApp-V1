@@ -19,7 +19,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct SS_UIApp: App {
+struct SeizureAppFile_V1App: App{
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
