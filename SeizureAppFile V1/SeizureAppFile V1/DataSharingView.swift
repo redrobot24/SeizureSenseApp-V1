@@ -77,7 +77,7 @@ struct DataSharingView: View {
                 }
                 
             }
-            .navigationTitle("Seizure Sense")
+            .navigationTitle("Data Sharing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
