@@ -17,6 +17,11 @@ struct ContentView: View {
     @State var showSettings = false
     @Environment(\.dismiss) var dismiss
     
+    @State var seizureDetected = false
+
+    // Animation for flashing
+    @State private var flash = false
+    
     var body: some View {
         
         ZStack {
@@ -36,16 +41,29 @@ struct ContentView: View {
                 
                 // Buttons
                 
-                Button("SEIZURE DETECTED"){}
-                // will light up red and blink when seizure is detected
-                    .font(.system(size: 36, weight: .bold))
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: .infinity)
-                    .frame(maxHeight: .infinity)
-                    .background(Color.gray.opacity(0.6))
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding()
+                Button("SEIZURE DETECTED") {
+                    seizureDetected.toggle()    // for testing
+                }
+                .font(.system(size: 36, weight: .bold))
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: .infinity)
+                .background(
+                    seizureDetected
+                    ? (flash ? Color.red : Color.red.opacity(0.5))
+                    : Color.gray.opacity(0.6)
+                )
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .padding()
+                .onChange(of: seizureDetected) {
+                    if seizureDetected {
+                        startFlashing()
+                    } else {
+                        stopFlashing()
+                    }
+                }
+                
                 Spacer()
                 Spacer()
                 
@@ -104,6 +122,16 @@ struct ContentView: View {
                 .controlSize(.regular)
             }
         }
+        }
+        func startFlashing() {
+            flash = true
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                flash.toggle()
+            }
+        }
+
+        func stopFlashing() {
+            flash = false
         }
     }
     

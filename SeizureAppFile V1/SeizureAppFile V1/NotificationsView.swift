@@ -34,7 +34,7 @@ struct NotificationsView: View {
                         Text("Notification Type")
                             .font(.system(size: 16))
                         
-                        Picker("Type", selection: $seizureType) {
+                        Picker("Type", selection: $notificationType) {
                             ForEach(0..<types.count, id: \.self) { index in
                                 Text(types[index]).tag(index)
                             }
