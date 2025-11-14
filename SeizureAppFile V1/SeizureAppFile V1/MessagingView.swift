@@ -103,17 +103,7 @@ struct MessagingView: View {
                         .font(.headline)
                         .bold()
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            
-                        }
-                    }
-                    .accessibilityLabel("Back")
-                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingAdd = true
