@@ -1,16 +1,16 @@
 //
 //  ThresholdViewBlue.swift
-//  SeizureAppFile V1
+//  BekahSeizureSense
 //
-//  Created by Bekah Muldoon on 11/13/25.
+//  Created by Bekah Muldoon on 11/12/25.
 //
 import SwiftUI
 
 struct ThresholdViewBlue: View {
-    
+
     enum HRMode: String, CaseIterable, Identifiable {
-        case adaptive = "Adaptive"
-        case nonAdaptive = "Non-Adaptive"
+        case adaptive = "Adaptive Thresholding"
+        case nonAdaptive = "Non-Adaptive Thresholding"
         var id: String { rawValue }
     }
 
@@ -26,82 +26,84 @@ struct ThresholdViewBlue: View {
     }
 
     var body: some View {
-        ZStack {
-            // blue background
-            Color(red: 0.85, green: 0.93, blue: 1.0)
-                .ignoresSafeArea()
+        NavigationView {
+            ZStack {
+                // BACKGROUND
+                Color(red: 0.85, green: 0.93, blue: 1.0)
+                    .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 20) {
+                ScrollView {
+                    VStack(spacing: 20) {
 
-                    // Add top spacing to move boxes down
-                    Spacer()
-                        .frame(height: 40)
+                        Spacer().frame(height: 40)
 
-                    // --- HR Thresholding Box ---
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("HR Thresholding")
-                            .font(.headline)
+                        // ----------------------------
+                        // HR BOX
+                        // ----------------------------
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("HR Thresholding")
+                                .font(.headline)
 
-                        Picker("Mode", selection: $selectedHRMode) {
-                            ForEach(HRMode.allCases) {
-                                Text($0.rawValue).tag($0)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        if selectedHRMode == .nonAdaptive {
-                            HStack {
-                                Text("Min:")
-                                TextField("Min HR", value: $hrMinValue, formatter: intFormatter)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                            }
-
-                            HStack {
-                                Text("Max:")
-                                TextField("Max HR", value: $hrMaxValue, formatter: intFormatter)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                            }
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)     //makes it full screen width
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
-
-                    // --- Movement Thresholding Box ---
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Movement Thresholding")
-                            .font(.headline)
-
-                        HStack {
-                            Text("Sensitivity Level")
-
-                            Spacer()
-
-                            Picker("", selection: $sensitivityLevel) {
-                                ForEach(1..<11) { level in
-                                    Text("\(level)").tag(level)
+                            Picker("Mode", selection: $selectedHRMode) {
+                                ForEach(HRMode.allCases) { mode in
+                                    Text(mode.rawValue).tag(mode)
                                 }
                             }
-                            .pickerStyle(.menu)   // dropdown menu
-                            .frame(width: 80)      
+                            .pickerStyle(.segmented)
+
+                            if selectedHRMode == .nonAdaptive {
+                                HStack {
+                                    Text("Min:")
+                                    TextField("Min", value: $hrMinValue, formatter: intFormatter)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+
+                                HStack {
+                                    Text("Max:")
+                                    TextField("Max", value: $hrMaxValue, formatter: intFormatter)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                            }
                         }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(radius: 2)
+
+                        // ----------------------------
+                        // MOVEMENT BOX
+                        // ----------------------------
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Movement Thresholding")
+                                .font(.headline)
+
+                            HStack {
+                                Text("Sensitivity Level")
+
+                                Spacer()
+
+                                Picker("", selection: $sensitivityLevel) {
+                                    ForEach(1..<11) { level in
+                                        Text("\(level)").tag(level)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 80)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(radius: 2)
+
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
-
-
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)  // consistent left/right padding for both boxes
             }
-
+            .navigationTitle("Threshold Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -109,4 +111,3 @@ struct ThresholdViewBlue: View {
 #Preview {
     ThresholdViewBlue()
 }
-
