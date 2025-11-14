@@ -15,6 +15,8 @@ struct NotificationsView: View {
     @State private var heartRateAlerts = false
     @State private var fallDetection = false
     @State private var notificationType = 0           // Picker selection
+    @State private var heartRateType = 0
+    @State private var fallType = 0
     
     let types = ["Sound", "Vibrate", "Both"]  // Notification options
     
@@ -24,53 +26,76 @@ struct NotificationsView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
-                
-                Text("Notifications")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .padding(.top, 20)
-                
-                // Seizure Alerts on/off
-                Toggle("Seizure Alerts", isOn: $seizureAlerts)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.7))
-                    )
-                     // MARK: - Heart Rate Alerts Toggle
-                Toggle("Heart Rate Alerts", isOn: $heartRateAlerts)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.7))
-                    )
-                
-                // MARK: - Fall Detection Toggle
-                Toggle("Fall Detection", isOn: $fallDetection)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.7))
-                    )
-                
-                // Notification Type Picker
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Notification Type")
-                        .font(.system(size: 18))
-                        .foregroundColor(.black)
+               VStack(alignment: .leading, spacing: 12) {
                     
-                    Picker("Type", selection: $notificationType) {
-                        ForEach(0..<types.count, id: \.self) { index in
-                            Text(types[index]).tag(index)
+                    Toggle("Seizure Alerts", isOn: $seizureAlerts)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notification Type")
+                            .font(.system(size: 16))
+                        
+                        Picker("Type", selection: $seizureType) {
+                            ForEach(0..<types.count, id: \.self) { index in
+                                Text(types[index]).tag(index)
+                            }
                         }
+                        .pickerStyle(SegmentedPickerStyle())
                     }
-                    .pickerStyle(SegmentedPickerStyle())
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white.opacity(0.7))
                 )
+                
+                
+                // Heart Rate Alerts Card
+                VStack(alignment: .leading, spacing: 12) {
+                    
+                    Toggle("Heart Rate Alerts", isOn: $heartRateAlerts)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notification Type")
+                            .font(.system(size: 16))
+                        
+                        Picker("Type", selection: $heartRateType) {
+                            ForEach(0..<types.count, id: \.self) { index in
+                                Text(types[index]).tag(index)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.7))
+                )
+                
+                
+                // Fall Detection Alerts Card
+                VStack(alignment: .leading, spacing: 12) {
+                    
+                    Toggle("Fall Detection", isOn: $fallDetection)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notification Type")
+                            .font(.system(size: 16))
+                        
+                        Picker("Type", selection: $fallType) {
+                            ForEach(0..<types.count, id: \.self) { index in
+                                Text(types[index]).tag(index)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.7))
+                )
+                
                 
                 Spacer()
             }
@@ -86,4 +111,3 @@ struct NotificationsView: View {
         NotificationsView()
     }
 }
-
