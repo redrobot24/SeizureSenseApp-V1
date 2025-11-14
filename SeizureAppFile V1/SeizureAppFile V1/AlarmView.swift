@@ -5,7 +5,7 @@
 //  Created by Kenzie MacGillivray on 11/13/25.
 //
 import SwiftUI
-struct ContentView: View {
+struct AlarmView: View {
     @State private var volume: Double=0
     @State private var brightness: Double=0
     private let range: ClosedRange<Double> = 0...100
@@ -61,10 +61,10 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    AlarmView()
 }
 
-private extension ContentView{
+private extension AlarmView{
     func increaseV() {
         guard volume < range.upperBound - step else {return}
         volume += step
@@ -75,7 +75,7 @@ private extension ContentView{
     }
 }
 
-private extension ContentView{
+private extension AlarmView{
     var increaseVol: some View {
         Button {
             withAnimation {
@@ -96,7 +96,7 @@ private extension ContentView{
     }
 }
 
-private extension ContentView{
+private extension AlarmView{
     func increaseB() {
         guard brightness < range.upperBound - 10 else {return}
         brightness += step
@@ -107,7 +107,7 @@ private extension ContentView{
     }
 }
 
-private extension ContentView{
+private extension AlarmView{
     var increaseBtn: some View {
         Button {
             withAnimation {

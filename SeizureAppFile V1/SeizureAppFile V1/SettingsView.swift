@@ -20,8 +20,6 @@ struct SettingsView: View {
         let bpm: Int
     }
     
-    // will be real data from smart watch 
-    
     let mockHeartRate: [HeartRateData] = [
         HeartRateData(time: 0, bpm: 72),
         HeartRateData(time: 1, bpm: 75),
@@ -34,14 +32,14 @@ struct SettingsView: View {
     
     var body: some View {
         ZStack {
-            // background ratio is changable
+            // Calm light blue background
             Color(red: 0.85, green: 0.93, blue: 1.0)
                 .ignoresSafeArea()
             
             ScrollView {
                 VStack(spacing: 24) {
                     
-                    // Heart Rate Monitor Section - will need to change
+                    // Heart Rate Monitor Section
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Heart Rate Monitor")
                             .font(.headline)
@@ -74,25 +72,25 @@ struct SettingsView: View {
                     // Settings Buttons Section
                     VStack(spacing: 16) {
                         settingsButton(title: "Data Sharing", icon: "square.and.arrow.up"){
-                            
+                            DataSharingView()
                         }
                         settingsButton(title: "Messaging", icon: "message"){
-                            
+                            MessagingView()
                         }
                         settingsButton(title: "Notifications", icon: "bell"){
                             
                         }
                         settingsButton(title: "Alarm Settings", icon: "alarm"){
-                            
+                            AlarmView()
                         }
                         settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3"){
-                            
+                            ThresholdViewBlue()
                         }
                         settingsButton(title: "Wi-Fi", icon: "wifi"){
-                            
+                            WifiView()
                         }
                         settingsButton(title: "Bluetooth", icon: "bolt.horizontal"){
-                            
+                            BluetoothView()
                         }
                     }
                     .padding(.horizontal)
@@ -101,26 +99,27 @@ struct SettingsView: View {
                 }
             }
             
-                    }
+        }
         
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-                    // X dismiss button in the top-right corner
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            dismiss()
-                        }) {
-                            Image(systemName: "xmark")
-                                .foregroundColor(.gray)
-                        }
-                    }
+            // X button in the top-right corner
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.gray)
                 }
+            }
+        }
     }
     
-    // Reusable button view (so we can keep using the exact same button style)
-    func settingsButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    // Reusable button view
+    //view builder destination so clicking can take you anywhere
+    func settingsButton<Destination: View>(title: String, icon: String, @ViewBuilder destination: () -> Destination) -> some View {
+        NavigationLink(destination: destination()) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 20))
@@ -141,10 +140,10 @@ struct SettingsView: View {
         }
     }
 }
-
-#Preview {
-    NavigationStack {
-        SettingsView()
+    
+    #Preview {
+        NavigationStack {
+            SettingsView()
+        }
     }
-}
 
