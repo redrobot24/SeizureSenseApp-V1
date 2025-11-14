@@ -3,7 +3,7 @@
 //  
 //
 //  Created by Sarah Yonosh on 11/13/25.
-//
+//  Edited by Isabella Smetana on 11/14/25
 //
 //
 
@@ -12,6 +12,8 @@ import SwiftUI
 struct NotificationsView: View {
     
     @State private var seizureAlerts = true    // switch on/off
+    @State private var heartRateAlerts = false
+    @State private var fallDetection = false
     @State private var notificationType = 0           // Picker selection
     
     let types = ["Sound", "Vibrate", "Both"]  // Notification options
@@ -30,6 +32,21 @@ struct NotificationsView: View {
                 
                 // Seizure Alerts on/off
                 Toggle("Seizure Alerts", isOn: $seizureAlerts)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.7))
+                    )
+                     // MARK: - Heart Rate Alerts Toggle
+                Toggle("Heart Rate Alerts", isOn: $heartRateAlerts)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.7))
+                    )
+                
+                // MARK: - Fall Detection Toggle
+                Toggle("Fall Detection", isOn: $fallDetection)
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)

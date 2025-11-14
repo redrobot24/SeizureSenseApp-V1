@@ -79,13 +79,7 @@ struct DataSharingView: View {
             }
             .navigationTitle("Data Sharing")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                    }
-                }
-            }
+            
         }
     }
 }
