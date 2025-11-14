@@ -78,7 +78,7 @@ struct SettingsView: View {
                             MessagingView()
                         }
                         settingsButton(title: "Notifications", icon: "bell"){
-                            
+                            NotificationsView()
                         }
                         settingsButton(title: "Alarm Settings", icon: "alarm"){
                             AlarmView()
