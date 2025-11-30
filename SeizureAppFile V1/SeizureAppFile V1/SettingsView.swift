@@ -74,6 +74,15 @@ struct SettingsView: View {
                         settingsButton(title: "Data Sharing", icon: "square.and.arrow.up"){
                             DataSharingView()
                         }
+                        settingsButton(title: "Notifications", icon: "bell") {
+                            NotificationsView()
+                        }
+                        settingsButton(title: "Location Services", icon: "location") {
+                            LocationSettingsView()
+                        }
+                        settingsButton(title: "Alarm Settings", icon: "alarm") {
+                            AlarmView()
+                        }
                         settingsButton(title: "Messaging", icon: "message"){
                             MessagingView()
                         }
