@@ -11,53 +11,125 @@ struct ContentView: View {
     private let range: ClosedRange<Double> = 0...100
     private let step: Double = 10
     
+    @State private var showVolumeInfo = false
+    
+   
+    @State private var showBrightnessInfo = false
+    
     var body: some View {
         
-        NavigationStack{
-            ZStack{
-                Color(red: 0.85, green: 0.93, blue: 1.0)
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 50) {
-                    VStack{
-                        Text("Volume \(Int(volume))%")
-                        HStack{
-                            decreaseVol
-                            Slider(value: $volume, in: range, step: step)
-                            increaseVol
-                        }
-                        .padding()
-                    }
+        ZStack {
+            Color(red: 0.85, green: 0.93, blue: 1.0)
+                .ignoresSafeArea()
+            
+            NavigationStack {
+                ZStack {
+                    Color(red: 0.85, green: 0.93, blue: 1.0)
+                        .ignoresSafeArea()
                     
-                    VStack{
-                        Text("Brightness \(Int(brightness))%")
-                        HStack{
-                            decreaseBtn
-                            Slider(value: $brightness, in: range, step: step)
-                            increaseBtn
-                        }
-                        .padding()
-                    }
-                }
-                .position(x:200, y:300)
-                
                     Text("")
                         .navigationTitle("Alarm Settings")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar{
-                            ToolbarItem(placement: .topBarLeading) {
-                                Button("Back", systemImage: "arrow.left", action: {})
-                                    .labelStyle(.iconOnly)
-                            }
-                        }
                 }
             }
-        
+            
+            VStack {
+                
+                
+                VStack {
+                    HStack(spacing: 6) {
+                        Text("Volume \(Int(volume))%")
+                        
+                       
+                        Button {
+                            showVolumeInfo = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    HStack {
+                        decreaseVol
+                        Slider(value: $volume, in: range, step: step)
+                        increaseVol
+                    }
+                    .padding()
+                }
+                .position(x: 200, y: 200)
+                
+                
+               
+                VStack {
+                    HStack(spacing: 6) {
+                        Text("Brightness \(Int(brightness))%")
+                        
+                       
+                        Button {
+                            showBrightnessInfo = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    HStack {
+                        decreaseBtn
+                        Slider(value: $brightness, in: range, step: step)
+                        increaseBtn
+                    }
+                    .padding()
+                }
+                .position(x: 200, y: -50)
+            }
         }
+        
+        
+      
+        .sheet(isPresented: $showVolumeInfo) {
+            VStack(spacing: 20) {
+                Text("Volume Settings")
+                    .font(.title2)
+                    .bold()
+                
+                Text("""
+The volume setting controls how loud the seizure alert sound will be.
+""")
+                .padding()
+                
+                Button("Close") {
+                    showVolumeInfo = false
+                }
+                .padding(.top, 20)
+            }
+            .presentationDetents([.medium])
+        }
+        
+        
+     
+        .sheet(isPresented: $showBrightnessInfo) {
+            VStack(spacing: 20) {
+                Text("Brightness Settings")
+                    .font(.title2)
+                    .bold()
+                
+                Text("""
+The brightness setting controls how bright the flashing SEIZURE alert will appear in the event of a seizure.
+""")
+                .padding()
+                
+                Button("Close") {
+                    showBrightnessInfo = false
+                }
+                .padding(.top, 20)
+            }
+            .presentationDetents([.medium])
+        }
+    }
+}
     }
 
 #Preview {
-    ContentView()
+    AlarmView()
 }
 
 private extension ContentView{
