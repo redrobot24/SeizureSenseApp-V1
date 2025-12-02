@@ -1,158 +1,135 @@
-//
-//  SettingsView.swift
-//  Seizure Sense UI
-//
-//  Created by Sarah Yonosh on 11/7/25.
-//
-
 import SwiftUI
-import Charts
-import SwiftData
 
 struct SettingsView: View {
     
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var settings: AppSettings
     
-    // Mock heart rate data
-    struct HeartRateData: Identifiable {
-        let id = UUID()
-        let time: Int
-        let bpm: Int
-    }
-    
-    let mockHeartRate: [HeartRateData] = [
-        HeartRateData(time: 0, bpm: 72),
-        HeartRateData(time: 1, bpm: 75),
-        HeartRateData(time: 2, bpm: 70),
-        HeartRateData(time: 3, bpm: 80),
-        HeartRateData(time: 4, bpm: 78),
-        HeartRateData(time: 5, bpm: 74),
-        HeartRateData(time: 6, bpm: 76)
-    ]
-    
+    @ObservedObject var seizureStore = SeizureStore()
+
     var body: some View {
-        ZStack {
-            // Calm light blue background
-            Color(red: 0.85, green: 0.93, blue: 1.0)
-                .ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    
-                    // Heart Rate Monitor Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Heart Rate Monitor")
-                            .font(.headline)
-                            .padding(.horizontal)
+        NavigationStack {
+            ZStack {
+                (settings.theme == .light ? Color(red: 0.85, green: 0.93, blue: 1.0) : Color.black)
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
                         
-                        Chart(mockHeartRate) {
-                            LineMark(
-                                x: .value("Time", $0.time),
-                                y: .value("BPM", $0.bpm)
-                            )
-                            .foregroundStyle(.red)
-                            .lineStyle(StrokeStyle(lineWidth: 3, lineJoin: .round))
+                        // MARK: Appearance & Text Size
+                        VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
                             
-                            PointMark(
-                                x: .value("Time", $0.time),
-                                y: .value("BPM", $0.bpm)
+                            // Appearance Card
+                            VStack(alignment: .leading, spacing: 8 * settings.textScale) {
+                                Text("Appearance")
+                                    .font(.system(size: 20 * settings.textScale, weight: .bold))
+                                    .foregroundColor(settings.theme == .light ? .black : .white)
+                                
+                                Picker("Appearance", selection: $settings.theme) {
+                                    Text("Light").tag(Theme.light)
+                                    Text("Dark").tag(Theme.dark)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            .padding(12 * settings.textScale)     // <-- reduced padding
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
                             )
-                            .foregroundStyle(.red)
+                            
+                            // Text Size Card
+                            VStack(alignment: .leading, spacing: 8 * settings.textScale) {
+                                Text("Text Size")
+                                    .font(.system(size: 20 * settings.textScale, weight: .bold))
+                                    .foregroundColor(settings.theme == .light ? .black : .white)
+                                
+                                HStack {
+                                    Text("A")
+                                        .font(.system(size: 12 * settings.textScale))
+                                    Slider(value: $settings.textScale, in: 0.8...1.6, step: 0.05)
+                                    Text("A")
+                                        .font(.system(size: 24 * settings.textScale))
+                                }
+                            }
+                            .padding(12 * settings.textScale)     // <-- reduced padding
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
+                            )
                         }
-                        .frame(height: 180)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.6))
-                        )
                         .padding(.horizontal)
+                        
+                        // MARK: Buttons Section
+                        VStack(spacing: 12 * settings.textScale) {   // <-- reduced spacing
+                            settingsButton(title: "Data Sharing", icon: "square.and.arrow.up") { DataSharingView() }
+                            settingsButton(title: "Notifications", icon: "bell") { NotificationsView() }
+                            settingsButton(title: "Location Services", icon: "location") { LocationSettingsView() }
+                            settingsButton(title: "Alarm Settings", icon: "alarm") { AlarmView() }
+                            settingsButton(title: "Messaging", icon: "message") { MessagingView() }
+                            settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3") { ThresholdViewBlue() }
+                            settingsButton(title: "Calendar", icon: "calendar") { CalendarView(store: seizureStore) }
+                            settingsButton(title: "Wi-Fi", icon: "wifi") { WifiView() }
+                            settingsButton(title: "Bluetooth", icon: "bolt.horizontal") { BluetoothView() }
+                        }
+                        .padding(.horizontal)
+                        
+                        Spacer(minLength: 20)   // <-- reduced
                     }
-                    .padding(.top, 20)
-                    
-                    // Settings Buttons Section
-                    VStack(spacing: 16) {
-                        settingsButton(title: "Data Sharing", icon: "square.and.arrow.up"){
-                            DataSharingView()
-                        }
-                        settingsButton(title: "Notifications", icon: "bell") {
-                            NotificationsView()
-                        }
-                        settingsButton(title: "Location Services", icon: "location") {
-                            LocationSettingsView()
-                        }
-                        settingsButton(title: "Alarm Settings", icon: "alarm") {
-                            AlarmView()
-                        }
-                        settingsButton(title: "Messaging", icon: "message"){
-                            MessagingView()
-                        }
-                        settingsButton(title: "Notifications", icon: "bell"){
-                            NotificationsView()
-                        }
-                        settingsButton(title: "Alarm Settings", icon: "alarm"){
-                            AlarmView()
-                        }
-                        settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3"){
-                            ThresholdViewBlue()
-                        }
-                        settingsButton(title: "Wi-Fi", icon: "wifi"){
-                            WifiView()
-                        }
-                        settingsButton(title: "Bluetooth", icon: "bolt.horizontal"){
-                            BluetoothView()
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer(minLength: 40)
+                    .padding(.top)
+                    .padding(.bottom, 40)   // <-- ensures scroll space
                 }
             }
-            
-        }
-        
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // X button in the top-right corner
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.gray)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundColor(settings.theme == .light ? .gray : .white)
+                    }
                 }
             }
         }
+        .preferredColorScheme(settings.theme == .light ? .light : .dark)
     }
     
-    // Reusable button view
-    //view builder destination so clicking can take you anywhere
-    func settingsButton<Destination: View>(title: String, icon: String, @ViewBuilder destination: () -> Destination) -> some View {
-        NavigationLink(destination: destination()) {
+    // Reusable Settings Button
+    func settingsButton<Destination: View>(
+        title: String,
+        icon: String,
+        @ViewBuilder destination: () -> Destination
+    ) -> some View {
+        NavigationLink(destination: destination()
+            .environmentObject(settings)) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 18 * settings.textScale))  // <-- slightly smaller
                     .foregroundColor(.blue)
-                    .frame(width: 32)
+                    .frame(width: 30)
+                
                 Text(title)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.black)
+                    .font(.system(size: 17 * settings.textScale, weight: .medium))
+                    .foregroundColor(settings.theme == .light ? .black : .white)
+                
                 Spacer()
+                
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
             }
-            .padding()
+            .padding(10 * settings.textScale)   // <-- reduced padding
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.7))
+                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
             )
         }
     }
 }
-    
-    #Preview {
-        NavigationStack {
-            SettingsView()
-        }
-    }
 
+#Preview {
+    NavigationStack {
+        SettingsView()
+            .environmentObject(AppSettings())
+    }
+}

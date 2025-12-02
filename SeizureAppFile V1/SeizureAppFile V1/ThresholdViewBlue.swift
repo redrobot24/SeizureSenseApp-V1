@@ -4,13 +4,15 @@
 //
 //  Created by Bekah Muldoon on 11/12/25.
 //
+
 import SwiftUI
 
 struct ThresholdViewBlue: View {
-    
+    @EnvironmentObject var settings: AppSettings
+
     enum HRMode: String, CaseIterable, Identifiable {
-        case adaptive = "Adaptive"
-        case nonAdaptive = "Non-Adaptive"
+        case adaptive = "Adaptive Thresholding"
+        case nonAdaptive = "Non-Adaptive Thresholding"
         var id: String { rawValue }
     }
 
@@ -19,7 +21,7 @@ struct ThresholdViewBlue: View {
     @State private var hrMaxValue: Int = 180
     @State private var sensitivityLevel = 5
 
-    
+    // Info sheet toggles
     @State private var showHRInfo = false
     @State private var showMovementInfo = false
 
@@ -30,151 +32,146 @@ struct ThresholdViewBlue: View {
     }
 
     var body: some View {
-        ZStack {
-            // blue background
-            Color(red: 0.85, green: 0.93, blue: 1.0)
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                // Light blue background, adapts for dark mode
+                (settings.theme == .light
+                 ? Color(red: 0.85, green: 0.93, blue: 1.0)
+                 : Color(red: 0.1, green: 0.12, blue: 0.18))
+                    .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 20) {
+                ScrollView {
+                    VStack(spacing: 20 * settings.textScale) {
 
-                    Spacer()
-                        .frame(height: 40)
+                        Spacer().frame(height: 20)
 
-                  
-                    VStack(alignment: .leading, spacing: 15) {
-
-                       
-                        HStack(spacing: 6) {
-                            Text("HR Thresholding")
-                                .font(.headline)
-
-                            Button {
-                                showHRInfo = true
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-
-                        Picker("Mode", selection: $selectedHRMode) {
-                            ForEach(HRMode.allCases) {
-                                Text($0.rawValue).tag($0)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        if selectedHRMode == .nonAdaptive {
+                        // ----------------------------
+                        // HR BOX
+                        // ----------------------------
+                        VStack(alignment: .leading, spacing: 15 * settings.textScale) {
                             HStack {
-                                Text("Min:")
-                                TextField("Min HR", value: $hrMinValue, formatter: intFormatter)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                            }
-
-                            HStack {
-                                Text("Max:")
-                                TextField("Max HR", value: $hrMaxValue, formatter: intFormatter)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                            }
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
-
-                    
-                    VStack(alignment: .leading, spacing: 15) {
-
-                        
-                        HStack(spacing: 6) {
-                            Text("Movement Thresholding")
-                                .font(.headline)
-
-                            Button {
-                                showMovementInfo = true
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-
-                        HStack {
-                            Text("Sensitivity Level")
-
-                            Spacer()
-
-                            Picker("", selection: $sensitivityLevel) {
-                                ForEach(1..<11) { level in
-                                    Text("\(level)").tag(level)
+                                Text("HR Thresholding")
+                                    .font(.system(size: 20 * settings.textScale, weight: .bold))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Button {
+                                    showHRInfo = true
+                                } label: {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 20 * settings.textScale))
                                 }
                             }
-                            .pickerStyle(.menu)
-                            .frame(width: 80)
+
+                            Picker("Mode", selection: $selectedHRMode) {
+                                ForEach(HRMode.allCases) { mode in
+                                    Text(mode.rawValue)
+                                        .font(.system(size: 16 * settings.textScale))
+                                        .tag(mode)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            if selectedHRMode == .nonAdaptive {
+                                HStack {
+                                    Text("Min:")
+                                        .font(.system(size: 16 * settings.textScale))
+                                    TextField("Min", value: $hrMinValue, formatter: intFormatter)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+
+                                HStack {
+                                    Text("Max:")
+                                        .font(.system(size: 16 * settings.textScale))
+                                    TextField("Max", value: $hrMaxValue, formatter: intFormatter)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(settings.theme == .light ? Color.white : Color(.systemGray6))
+                        )
+                        .shadow(radius: 2)
+                        .sheet(isPresented: $showHRInfo) {
+                            VStack(spacing: 20) {
+                                Text("Heart Rate Thresholding")
+                                    .font(.title2)
+                                    .bold()
+                                Text("This controls how the app detects abnormal heart rates. Adaptive mode adjusts thresholds automatically, while Non-Adaptive uses fixed min and max values.")
+                                    .padding()
+                                Button("Close") { showHRInfo = false }
+                                    .padding(.top, 20)
+                            }
+                            .presentationDetents([.medium])
+                        }
+
+                        // ----------------------------
+                        // MOVEMENT BOX
+                        // ----------------------------
+                        VStack(alignment: .leading, spacing: 15 * settings.textScale) {
+                            HStack {
+                                Text("Movement Thresholding")
+                                    .font(.system(size: 20 * settings.textScale, weight: .bold))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Button {
+                                    showMovementInfo = true
+                                } label: {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 20 * settings.textScale))
+                                }
+                            }
+
+                            HStack {
+                                Text("Sensitivity Level")
+                                    .font(.system(size: 16 * settings.textScale))
+                                Spacer()
+                                Picker("", selection: $sensitivityLevel) {
+                                    ForEach(1..<11) { level in
+                                        Text("\(level)")
+                                            .font(.system(size: 16 * settings.textScale))
+                                            .tag(level)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 80)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(settings.theme == .light ? Color.white : Color(.systemGray6))
+                        )
+                        .shadow(radius: 2)
+                        .sheet(isPresented: $showMovementInfo) {
+                            VStack(spacing: 20) {
+                                Text("Movement Thresholding")
+                                    .font(.title2)
+                                    .bold()
+                                Text("This controls how sensitive the app is to movement. Higher sensitivity detects smaller movements, lower sensitivity requires larger movement events.")
+                                    .padding()
+                                Button("Close") { showMovementInfo = false }
+                                    .padding(.top, 20)
+                            }
+                            .presentationDetents([.medium])
                         }
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
+            .navigationTitle("Threshold Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
-
-        
-        .sheet(isPresented: $showHRInfo) {
-            VStack(spacing: 20) {
-                Text("HR Thresholding")
-                    .font(.title2)
-                    .bold()
-
-                Text("""
-HR (heart rate) thresholding helps to detect seizures by monitoring the user's heart rate.
-
-• Adaptive mode learns the user's normal HR patterns, and can notice unusual changes in HR.   
-• Non-adaptive mode uses fixed minimum and maximum HR values that are set manually.
-""")
-                .padding()
-
-                Button("Close") {
-                    showHRInfo = false
-                }
-                .padding(.top, 10)
-            }
-            .presentationDetents([.medium])
-        }
-
-        // ===== MOVEMENT INFO SHEET =====
-        .sheet(isPresented: $showMovementInfo) {
-            VStack(spacing: 20) {
-                Text("Movement Thresholding")
-                    .font(.title2)
-                    .bold()
-
-                Text("""
-Movement thresholding uses accelerometer data from the Apple Watch to identify seizure-like shaking.
-
-Higher sensitivity = detects smaller movements (higher number) 
-Lower sensitivity = ignores mild movement and only triggers on strong shaking (lower number)
-""")
-                .padding()
-
-                Button("Close") {
-                    showMovementInfo = false
-                }
-                .padding(.top, 10)
-            }
-            .presentationDetents([.medium])
-        }
+        .preferredColorScheme(settings.theme == .light ? .light : .dark)
     }
 }
 
 #Preview {
     ThresholdViewBlue()
+        .environmentObject(AppSettings())
 }
-

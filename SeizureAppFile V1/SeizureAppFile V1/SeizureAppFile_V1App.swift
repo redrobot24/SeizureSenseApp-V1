@@ -7,36 +7,23 @@
 
 import SwiftUI
 
-//@main
-//struct SeizureAppFile_V1App: App {
-//    var body: some Scene {
-//        WindowGroup {
-//            ContentView()
-//        }
- //   }
-//}
-
-import SwiftData
-
 @main
-struct SeizureAppFile_V1App: App{
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+struct SeizureSenseApp: App {
+    
+    @StateObject private var settings = AppSettings()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(settings)
+                .preferredColorScheme(colorScheme(for: settings.theme))
         }
-        .modelContainer(sharedModelContainer)
+    }
+    
+    private func colorScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
 }

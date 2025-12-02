@@ -1,14 +1,15 @@
 //
 //  LocationSettingsView.swift
-//  Seizure Sense UI
+//  SeizureAppFile V1
 //
-//  Created by Isabella Smetana on 11/30/25.
+//  Created by Maren McCrossan on 12/2/25.
 //
-
 import SwiftUI
 import CoreLocation
+import Combine
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    
     private let manager = CLLocationManager()
     
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -33,49 +34,72 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 }
 
 struct LocationSettingsView: View {
+    @EnvironmentObject var settings: AppSettings
     @StateObject private var locationManager = LocationManager()
     
     var body: some View {
         Form {
-            Section(header: Text("Location Services")) {
+            Section(header: Text("Location Services")
+                        .font(.system(size: 16 * settings.textScale, weight: .semibold))) {
                 
                 HStack {
                     Text("Enable Location Services")
+                        .font(.system(size: 16 * settings.textScale))
                     Spacer()
                     Toggle("", isOn: Binding(
-                        get: { locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways },
+                        get: {
+                            locationManager.authorizationStatus == .authorizedWhenInUse ||
+                            locationManager.authorizationStatus == .authorizedAlways
+                        },
                         set: { newValue in
                             if newValue {
                                 locationManager.requestPermission()
                             } else {
-                                // Direct user to system settings to disable
+#if canImport(UIKit)
                                 if let url = URL(string: UIApplication.openSettingsURLString) {
                                     UIApplication.shared.open(url)
                                 }
+#endif
                             }
                         }
                     ))
                     .labelsHidden()
                 }
+                .padding(.vertical, 4 * settings.textScale)
                 
                 HStack {
                     Text("Authorization Status")
+                        .font(.system(size: 16 * settings.textScale))
                     Spacer()
                     Text(statusText(for: locationManager.authorizationStatus))
                         .foregroundColor(.gray)
+                        .font(.system(size: 16 * settings.textScale))
                 }
+                .padding(.vertical, 4 * settings.textScale)
                 
                 if locationManager.authorizationStatus == .denied {
                     Button("Open Settings to Enable Location") {
+#if canImport(UIKit)
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             UIApplication.shared.open(url)
                         }
+#endif
                     }
                     .foregroundColor(.blue)
+                    .font(.system(size: 16 * settings.textScale))
                 }
             }
         }
         .navigationTitle("Location Services")
+        .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(preferredScheme(for: settings.theme))
+    }
+    
+    private func preferredScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
     
     func statusText(for status: CLAuthorizationStatus) -> String {
@@ -93,5 +117,7 @@ struct LocationSettingsView: View {
 #Preview {
     NavigationStack {
         LocationSettingsView()
+            .environmentObject(AppSettings())
     }
 }
+

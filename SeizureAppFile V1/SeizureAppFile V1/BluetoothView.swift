@@ -1,60 +1,34 @@
-
-//
-
-
-//  BluetoothView.swift
-//
-//
-//  Created by Sarah Yonosh on 11/7/25.
-//
-
 import SwiftUI
 
 struct BluetoothView: View {
     
-    
-    
-    // switch for if Bluetooth is on
+    @EnvironmentObject var settings: AppSettings
+
     @State private var bluetoothEnabled = true
-    
-    // list of discoverable devices
     @State private var availableDevices = [
         "Kenzie's Apple Watch",
         "Maren's Apple Watch",
         "Fitbit Charge 6",
         "Old Apple Watch Series 4"
     ]
-    
-    // Currently connected device
     @State private var connectedDevice: String? = "Sierra’s Apple Watch"
     
     var body: some View {
         ZStack {
-            
-            // Background (matches your app's theme)
-            Color(red: 0.85, green: 0.93, blue: 1.0)
+            (settings.theme == .light ? Color(red: 0.85, green: 0.93, blue: 1.0) : Color.black)
                 .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
-                    
-                    // Bluetooth ON/OFF switch
+                VStack(spacing: 24 * settings.textScale) {
                     bluetoothToggleCard
-                    
-                    // Currently connected device
                     connectedDeviceCard
-                    
-                    // List of all other devices
                     availableDevicesList
-                    
-                    // Disconnect button
                     disconnectButton
-                    
-                    // Refresh button
                     refreshButton
                 }
                 .padding()
             }
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Bluetooth")
         .navigationBarTitleDisplayMode(.inline)
@@ -63,12 +37,10 @@ struct BluetoothView: View {
 
 extension BluetoothView {
     
-    // switch that turns bluetooth on/off
     var bluetoothToggleCard: some View {
         HStack {
-            
             Text("Bluetooth")
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 20 * settings.textScale, weight: .semibold))
             
             Spacer()
             
@@ -78,41 +50,30 @@ extension BluetoothView {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.7))
+                .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
         )
     }
     
-    
-    
-    // shows the device that is currently cpnnected and actively sending seizure data
     var connectedDeviceCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            
+        VStack(alignment: .leading, spacing: 6 * settings.textScale) {
             Text("Connected Device")
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 16 * settings.textScale, weight: .medium))
                 .foregroundColor(.gray)
             
             if let device = connectedDevice {
-                
                 HStack {
                     Image(systemName: "applewatch")
                         .foregroundColor(.blue)
-                    
                     Text(device)
-                        .font(.system(size: 18, weight: .medium))
-                    
+                        .font(.system(size: 18 * settings.textScale, weight: .medium))
                     Spacer()
-                    
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green) // shows connection
+                        .foregroundColor(.green)
                 }
                 .padding(.vertical, 4)
-                
             } else {
-                
-                // No device connected fallback
                 Text("No device connected")
-                    .font(.system(size: 18))
+                    .font(.system(size: 18 * settings.textScale))
                     .foregroundColor(.red)
                     .padding(.vertical, 4)
             }
@@ -120,101 +81,73 @@ extension BluetoothView {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.7))
+                .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
         )
     }
     
-    
-    
-    // List of wearables the user could switch to.
     var availableDevicesList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            
+        VStack(alignment: .leading, spacing: 10 * settings.textScale) {
             Text("Available Devices")
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 16 * settings.textScale, weight: .medium))
                 .foregroundColor(.gray)
             
-            // Loop through each mock device
             ForEach(availableDevices, id: \.self) { device in
-                
                 Button {
-                    // when a device is tapped, connects to it
                     connectedDevice = device
                 } label: {
-                    
                     HStack {
-                        
-                        // Icon changes depending on device type
-                        Image(systemName:
-                                device.contains("Fitbit")
-                                ? "figure.walk.circle"
-                                : "applewatch"
-                        )
-                        .foregroundColor(.blue)
-                        
+                        Image(systemName: device.contains("Fitbit") ? "figure.walk.circle" : "applewatch")
+                            .foregroundColor(.blue)
                         Text(device)
-                            .font(.system(size: 18))
-                        
+                            .font(.system(size: 18 * settings.textScale))
                         Spacer()
                     }
                     .padding(.vertical, 6)
                 }
-                
                 Divider()
             }
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.7))
+                .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
         )
     }
     
-    
-    // unpairs the current watch.
     var disconnectButton: some View {
         Button(role: .destructive) {
             connectedDevice = nil
         } label: {
             Text("Disconnect Device")
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 18 * settings.textScale, weight: .medium))
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.7))
+                        .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
                 )
         }
     }
     
-    
-    // refresh bluetooth options
-    // Simulates scanning for new devices by shuffling the list
     var refreshButton: some View {
         Button {
-            //just shuffles order
             availableDevices.shuffle()
-            
-            
         } label: {
             Text("Scan for Devices")
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 18 * settings.textScale, weight: .medium))
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.7))
+                        .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
                 )
         }
     }
 }
-
 
 #Preview {
     NavigationStack {
         BluetoothView()
+            .environmentObject(AppSettings())
     }
 }
-
-
-

@@ -1,10 +1,3 @@
-//
-//  MessagingView.swift
-//  Maren-Content View
-//
-//  Created by Maren McCrossan on 11/12/25.
-//
-
 import SwiftUI
 
 struct Contact: Identifiable, Equatable, Hashable {
@@ -32,6 +25,7 @@ final class MessagingViewModel {
 
 struct MessagingView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var settings: AppSettings
     
     @State private var model = MessagingViewModel()
     @State private var showingAdd = false
@@ -47,25 +41,25 @@ struct MessagingView: View {
             Group {
                 if model.contacts.isEmpty {
                     // Empty state
-                    VStack(spacing: 16) {
+                    VStack(spacing: 16 * settings.textScale) {
                         Image(systemName: "person.crop.circle.badge.plus")
-                            .font(.system(size: 56))
+                            .font(.system(size: 56 * settings.textScale))
                             .foregroundStyle(.secondary)
                         Text("No contacts yet")
-                            .font(.title3)
-                            .bold()
+                            .font(.system(size: 18 * settings.textScale, weight: .bold))
                         Text("Tap the button below to add your first contact.")
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
+                            .font(.system(size: 14 * settings.textScale))
                         
                         Button {
                             showingAdd = true
                         } label: {
                             Label("Add Contact", systemImage: "plus.circle.fill")
-                                .font(.headline)
+                                .font(.system(size: 16 * settings.textScale, weight: .semibold))
                         }
                         .buttonStyle(.borderedProminent)
-                        .padding(.top, 4)
+                        .padding(.top, 4 * settings.textScale)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
@@ -73,22 +67,23 @@ struct MessagingView: View {
                     // Contacts list
                     List {
                         ForEach(model.contacts) { contact in
-                            HStack(spacing: 12) {
+                            HStack(spacing: 12 * settings.textScale) {
                                 Circle()
                                     .fill(Color.blue.opacity(0.2))
-                                    .frame(width: 40, height: 40)
-                                    .overlay(Text(initials(for: contact.firstName)).bold())
+                                    .frame(width: 40 * settings.textScale, height: 40 * settings.textScale)
+                                    .overlay(Text(initials(for: contact.firstName))
+                                                .font(.system(size: 16 * settings.textScale, weight: .bold)))
                                 
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 2 * settings.textScale) {
                                     Text(contact.firstName)
-                                        .font(.headline)
+                                        .font(.system(size: 16 * settings.textScale, weight: .semibold))
                                     Text(formatPhone(contact.phoneNumber))
-                                        .font(.subheadline)
+                                        .font(.system(size: 14 * settings.textScale))
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 4 * settings.textScale)
                         }
                         .onDelete(perform: model.delete)
                     }
@@ -96,12 +91,11 @@ struct MessagingView: View {
             }
             .navigationTitle("Messaging")
             .navigationBarTitleDisplayMode(.inline)
-
+            .preferredColorScheme(preferredScheme(for: settings.theme))
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Messaging")
-                        .font(.headline)
-                        .bold()
+                        .font(.system(size: 18 * settings.textScale, weight: .bold))
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -109,11 +103,12 @@ struct MessagingView: View {
                         showingAdd = true
                     } label: {
                         Image(systemName: "plus")
+                            .font(.system(size: 18 * settings.textScale))
                     }
                     .accessibilityLabel("Add Contact")
                 }
             }
-            // Add-contact sheet with a small form
+            // Add-contact sheet
             .sheet(isPresented: $showingAdd, onDismiss: resetForm) {
                 NavigationStack {
                     Form {
@@ -122,39 +117,38 @@ struct MessagingView: View {
                                 .textContentType(.givenName)
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled(true)
-                                
+                                .font(.system(size: 16 * settings.textScale))
                             
                             TextField("Phone Number", text: $phoneNumber)
                                 .keyboardType(.phonePad)
                                 .textContentType(.telephoneNumber)
+                                .font(.system(size: 16 * settings.textScale))
                         }
                     }
                     .navigationTitle("New Contact")
                     .navigationBarTitleDisplayMode(.inline)
+                    .preferredColorScheme(preferredScheme(for: settings.theme))
                     .toolbar {
-                        // Centered, smaller title
                         ToolbarItem(placement: .principal) {
                             Text("New Contact")
-                                .font(.subheadline)
-                                .bold()
+                                .font(.system(size: 16 * settings.textScale, weight: .bold))
                         }
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                showingAdd = false
-                            }
+                            Button("Cancel") { showingAdd = false }
+                                .font(.system(size: 16 * settings.textScale))
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Add") {
-                                addContactValidated()
-                            }
-                            .disabled(firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                                      phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            Button("Add") { addContactValidated() }
+                                .font(.system(size: 16 * settings.textScale))
+                                .disabled(firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                                          phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                     .alert("Invalid Contact", isPresented: $showValidationAlert) {
-                        Button("OK", role: .cancel) { }
+                        Button("OK", role: .cancel) {}
                     } message: {
                         Text(validationMessage)
+                            .font(.system(size: 14 * settings.textScale))
                     }
                 }
             }
@@ -162,7 +156,6 @@ struct MessagingView: View {
     }
     
     private func addContactValidated() {
-        // Simple validation: allow digits and common phone punctuation
         let allowed = CharacterSet(charactersIn: "+- ()0123456789")
         let isValidPhone = phoneNumber.unicodeScalars.allSatisfy { allowed.contains($0) }
         
@@ -189,11 +182,18 @@ struct MessagingView: View {
     }
     
     private func formatPhone(_ phone: String) -> String {
-        // Lightweight formatting: collapse extra spaces
         phone.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+    }
+    
+    private func preferredScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
 }
 
 #Preview {
     MessagingView()
+        .environmentObject(AppSettings())
 }

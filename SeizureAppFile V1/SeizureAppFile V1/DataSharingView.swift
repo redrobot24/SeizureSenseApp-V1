@@ -1,38 +1,34 @@
-//
-//  DataSharingView.swift
-//  Maren-Content View
-//
-//  Created by Maren McCrossan on 11/12/25.
-//
 import SwiftUI
 import UserNotifications
 import CoreLocation
 
 struct IconLabel: View {
+    @EnvironmentObject var settings: AppSettings
     let title: String
     let systemImage: String
     let color: Color
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 12 * settings.textScale) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(color)
                 Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 18 * settings.textScale, weight: .semibold))
                     .foregroundStyle(.white)
             }
-            .frame(width: 36, height: 36)
+            .frame(width: 36 * settings.textScale, height: 36 * settings.textScale)
 
             Text(title)
-                .foregroundStyle(.primary) // keep text not colorful
+                .font(.system(size: 16 * settings.textScale, weight: .regular))
+                .foregroundStyle(.primary)
         }
     }
 }
 
-
 struct DataSharingView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var settings: AppSettings
     @AppStorage("allowMessaging") private var allowMessaging = false
     @AppStorage("allowCellularData") private var allowCellularData = true
     @AppStorage("allowLocation") private var allowLocation = false
@@ -47,8 +43,6 @@ struct DataSharingView: View {
                 Section("ALLOW SEIZURE SENSE TO ACCESS") {
                     Toggle(isOn: $allowMessaging) {
                         IconLabel(title: "Messaging", systemImage: "message", color: .green)
-                            
-                            
                     }
 
                     Toggle(isOn: $allowCellularData) {
@@ -75,15 +69,22 @@ struct DataSharingView: View {
                         IconLabel(title: "Background App Refresh", systemImage: "arrow.clockwise", color: .teal)
                     }
                 }
-                
             }
             .navigationTitle("Data Sharing")
             .navigationBarTitleDisplayMode(.inline)
-            
+            .preferredColorScheme(preferredScheme(for: settings.theme))
+        }
+    }
+
+    private func preferredScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
         }
     }
 }
 
 #Preview {
     DataSharingView()
+        .environmentObject(AppSettings())
 }
