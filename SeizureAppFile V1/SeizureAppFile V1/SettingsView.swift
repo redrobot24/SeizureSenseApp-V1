@@ -16,7 +16,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
                         
-                        // MARK: Appearance & Text Size
+                        // Appearance & Text Size
                         VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
                             
                             // Appearance Card
@@ -59,7 +59,7 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal)
                         
-                        // MARK: Buttons Section
+                        //  Buttons Section
                         VStack(spacing: 12 * settings.textScale) {   // <-- reduced spacing
                             settingsButton(title: "Data Sharing", icon: "square.and.arrow.up") { DataSharingView() }
                             settingsButton(title: "Notifications", icon: "bell") { NotificationsView() }
