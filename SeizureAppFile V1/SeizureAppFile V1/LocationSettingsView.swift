@@ -1,9 +1,3 @@
-//
-//  LocationSettingsView.swift
-//  SeizureAppFile V1
-//
-//  Created by Maren McCrossan on 12/2/25.
-//
 import SwiftUI
 import CoreLocation
 import Combine
@@ -99,6 +93,7 @@ struct LocationSettingsView: View {
         switch theme {
         case .light: return .light
         case .dark: return .dark
+        default: return nil
         }
     }
     
@@ -120,4 +115,3 @@ struct LocationSettingsView: View {
             .environmentObject(AppSettings())
     }
 }
-

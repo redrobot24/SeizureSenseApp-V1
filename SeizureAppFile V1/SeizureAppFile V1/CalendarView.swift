@@ -140,7 +140,15 @@ struct CalendarView: View {
                 }
             }
         }
-        .preferredColorScheme(settings.theme == .light ? .light : .dark)
+        .preferredColorScheme(preferredScheme(for: settings.theme))
+    }
+    
+    private func preferredScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
+        default: return nil
+        }
     }
     
     private func monthDays() -> [Date] {

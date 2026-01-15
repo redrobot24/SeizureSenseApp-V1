@@ -36,25 +36,17 @@ struct LoadingView: View {
                 .onAppear { animate = true }
             }
         }
-        .preferredColorScheme(settings.theme == .light ? .light : .dark)
+        .preferredColorScheme(.light)
     }
     
     // MARK: - Dynamic Colors
     
     private var backgroundColors: [Color] {
-        switch settings.theme {
-        case .light:
-            return [Color(red: 0.7, green: 0.9, blue: 1.0), Color(red: 0.7, green: 1.0, blue: 0.7)]
-        case .dark:
-            return [Color(.systemGray6), Color(.systemGray4)]
-        }
+        [Color(red: 0.7, green: 0.9, blue: 1.0), Color(red: 0.7, green: 1.0, blue: 0.7)]
     }
     
     private var heartbeatColor: Color {
-        switch settings.theme {
-        case .light: return .black
-        case .dark: return .white
-        }
+        .black
     }
 }
 

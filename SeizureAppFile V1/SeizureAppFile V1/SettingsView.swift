@@ -4,63 +4,72 @@ struct SettingsView: View {
     
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var settings: AppSettings
-    
     @ObservedObject var seizureStore = SeizureStore()
-
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                (settings.theme == .light ? Color(red: 0.85, green: 0.93, blue: 1.0) : Color.black)
+                // Background color now fully theme-safe
+                settings.theme.backgroundColor
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
+                    VStack(spacing: 16 * settings.textScale) {
                         
+<<<<<<< Updated upstream
                         // Appearance & Text Size
                         VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
+=======
+                        // MARK: Appearance & Text Size
+                        VStack(spacing: 16 * settings.textScale) {
+>>>>>>> Stashed changes
                             
-                            // Appearance Card
+                            // Appearance
                             VStack(alignment: .leading, spacing: 8 * settings.textScale) {
                                 Text("Appearance")
                                     .font(.system(size: 20 * settings.textScale, weight: .bold))
-                                    .foregroundColor(settings.theme == .light ? .black : .white)
+                                    .foregroundColor(settings.theme.foregroundColor)
                                 
                                 Picker("Appearance", selection: $settings.theme) {
-                                    Text("Light").tag(Theme.light)
-                                    Text("Dark").tag(Theme.dark)
+                                    ForEach(Theme.allCases) { theme in
+                                        Text(theme.rawValue.capitalized).tag(theme)
+                                    }
                                 }
                                 .pickerStyle(.segmented)
                             }
-                            .padding(12 * settings.textScale)     // <-- reduced padding
+                            .padding(12 * settings.textScale)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
+                                    .fill(settings.theme.secondaryColor.opacity(0.3))
                             )
                             
-                            // Text Size Card
+                            // Text Size
                             VStack(alignment: .leading, spacing: 8 * settings.textScale) {
                                 Text("Text Size")
                                     .font(.system(size: 20 * settings.textScale, weight: .bold))
-                                    .foregroundColor(settings.theme == .light ? .black : .white)
+                                    .foregroundColor(settings.theme.foregroundColor)
                                 
                                 HStack {
-                                    Text("A")
-                                        .font(.system(size: 12 * settings.textScale))
+                                    Text("A").font(.system(size: 12 * settings.textScale))
                                     Slider(value: $settings.textScale, in: 0.8...1.6, step: 0.05)
-                                    Text("A")
-                                        .font(.system(size: 24 * settings.textScale))
+                                    Text("A").font(.system(size: 24 * settings.textScale))
                                 }
                             }
-                            .padding(12 * settings.textScale)     // <-- reduced padding
+                            .padding(12 * settings.textScale)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
+                                    .fill(settings.theme.secondaryColor.opacity(0.3))
                             )
                         }
                         .padding(.horizontal)
                         
+<<<<<<< Updated upstream
                         //  Buttons Section
                         VStack(spacing: 12 * settings.textScale) {   // <-- reduced spacing
+=======
+                        // MARK: Buttons Section
+                        VStack(spacing: 12 * settings.textScale) {
+>>>>>>> Stashed changes
                             settingsButton(title: "Data Sharing", icon: "square.and.arrow.up") { DataSharingView() }
                             settingsButton(title: "Notifications", icon: "bell") { NotificationsView() }
                             settingsButton(title: "Location Services", icon: "location") { LocationSettingsView() }
@@ -73,60 +82,62 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal)
                         
-                        Spacer(minLength: 20)   // <-- reduced
+                        Spacer(minLength: 20)
                     }
                     .padding(.top)
-                    .padding(.bottom, 40)   // <-- ensures scroll space
+                    .padding(.bottom, 40)
                 }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .foregroundColor(settings.theme == .light ? .gray : .white)
+                            .foregroundColor(settings.theme.foregroundColor)
                     }
                 }
             }
         }
-        .preferredColorScheme(settings.theme == .light ? .light : .dark)
+        // Fully respects the selected theme
+        .preferredColorScheme(
+            settings.theme == .light ? .light :
+            settings.theme == .dark ? .dark : nil
+        )
     }
     
-    // Reusable Settings Button
+    // MARK: - Reusable Button
     func settingsButton<Destination: View>(
         title: String,
         icon: String,
         @ViewBuilder destination: () -> Destination
     ) -> some View {
-        NavigationLink(destination: destination()
-            .environmentObject(settings)) {
+        NavigationLink(destination: destination().environmentObject(settings)) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 18 * settings.textScale))  // <-- slightly smaller
+                    .font(.system(size: 18 * settings.textScale))
                     .foregroundColor(.blue)
                     .frame(width: 30)
                 
                 Text(title)
                     .font(.system(size: 17 * settings.textScale, weight: .medium))
-                    .foregroundColor(settings.theme == .light ? .black : .white)
+                    .foregroundColor(settings.theme.foregroundColor)
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
             }
-            .padding(10 * settings.textScale)   // <-- reduced padding
+            .padding(10 * settings.textScale)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(settings.theme == .light ? Color.white.opacity(0.7) : Color.gray.opacity(0.2))
+                    .fill(settings.theme.secondaryColor.opacity(0.3))
             )
         }
     }
 }
 
+// MARK: Preview
 #Preview {
     NavigationStack {
         SettingsView()

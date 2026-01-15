@@ -189,6 +189,7 @@ struct MessagingView: View {
         switch theme {
         case .light: return .light
         case .dark: return .dark
+        default: return nil
         }
     }
 }
