@@ -1,9 +1,3 @@
-//
-//  MockHeartRateStream.swift
-//  
-//
-//  Created by Maren McCrossan on 1/15/26.
-//
 import Foundation
 import Combine
 import SwiftUI
@@ -43,4 +37,3 @@ final class MockHeartRateStream: HeartRateStream {
         timer = nil
     }
 }
-

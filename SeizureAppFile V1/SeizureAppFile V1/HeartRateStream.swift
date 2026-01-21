@@ -1,9 +1,3 @@
-//
-//  HeartRateStream.swift
-//  
-//
-//  Created by Maren McCrossan on 1/15/26.
-//
 import Foundation
 import Combine
 import HealthKit
@@ -59,4 +53,3 @@ class HeartRateStream: ObservableObject {
         }
     }
 }
-

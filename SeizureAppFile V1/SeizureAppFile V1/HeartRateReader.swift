@@ -1,9 +1,3 @@
-//
-//  HeartRateReader.swift
-//  
-//
-//  Created by Maren McCrossan on 1/15/26.
-//
 import Foundation
 import HealthKit
 
@@ -64,4 +58,3 @@ final class HeartRateReader {
         anchoredQuery = query
     }
 }
-

@@ -16,28 +16,8 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 16 * settings.textScale) {
                         
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        // Appearance & Text Size
-                        VStack(spacing: 16 * settings.textScale) {   // <-- reduced spacing
-=======
                         // MARK: Appearance & Text Size
                         VStack(spacing: 16 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Appearance & Text Size
-                        VStack(spacing: 16 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Appearance & Text Size
-                        VStack(spacing: 16 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Appearance & Text Size
-                        VStack(spacing: 16 * settings.textScale) {
->>>>>>> Stashed changes
                             
                             // Appearance
                             VStack(alignment: .leading, spacing: 8 * settings.textScale) {
@@ -78,28 +58,8 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal)
                         
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        //  Buttons Section
-                        VStack(spacing: 12 * settings.textScale) {   // <-- reduced spacing
-=======
                         // MARK: Buttons Section
                         VStack(spacing: 12 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Buttons Section
-                        VStack(spacing: 12 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Buttons Section
-                        VStack(spacing: 12 * settings.textScale) {
->>>>>>> Stashed changes
-=======
-                        // MARK: Buttons Section
-                        VStack(spacing: 12 * settings.textScale) {
->>>>>>> Stashed changes
                             settingsButton(title: "Data Sharing", icon: "square.and.arrow.up") { DataSharingView() }
                             settingsButton(title: "Notifications", icon: "bell") { NotificationsView() }
                             settingsButton(title: "Location Services", icon: "location") { LocationSettingsView() }

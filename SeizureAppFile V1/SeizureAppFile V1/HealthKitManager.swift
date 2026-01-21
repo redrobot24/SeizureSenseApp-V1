@@ -1,9 +1,3 @@
-//
-//  HealthKitManager.swift
-//  
-//
-//  Created by Maren McCrossan on 1/15/26.
-//
 import Foundation
 import HealthKit
 
@@ -26,4 +20,3 @@ final class HealthKitManager {
         healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { _, _ in }
     }
 }
-
