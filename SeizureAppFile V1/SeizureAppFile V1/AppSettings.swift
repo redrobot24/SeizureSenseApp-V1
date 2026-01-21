@@ -17,7 +17,7 @@ enum Theme: String, CaseIterable, Identifiable {
         case .dark:
             return Color.black
         case .system:
-            return Color(UIColor.systemBackground)
+            return Color.white
         }
     }
     
@@ -28,7 +28,7 @@ enum Theme: String, CaseIterable, Identifiable {
         case .dark:
             return Color.white
         case .system:
-            return Color.primary
+            return Color.black
         }
     }
     
@@ -39,12 +39,12 @@ enum Theme: String, CaseIterable, Identifiable {
         case .dark:
             return Color.gray.opacity(0.7)
         case .system:
-            return Color.secondary
+            return Color.gray
         }
     }
 }
 
 class AppSettings: ObservableObject {
-    @Published var theme: Theme = .system
+    @Published var theme: Theme = .light
     @Published var textScale: CGFloat = 1.0
 }

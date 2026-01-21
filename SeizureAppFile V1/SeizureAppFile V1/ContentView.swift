@@ -53,116 +53,133 @@ struct ContentView: View {
                  : Color(red: 0.1, green: 0.12, blue: 0.18))
                 .ignoresSafeArea()
 
-                VStack(spacing: 20 * settings.textScale) {
-                    Spacer()
+                ScrollView {
+                    VStack(spacing: 20 * settings.textScale) {
+                        Spacer()
 
-                    // MARK: - Heart Rate Monitor
-                    VStack(spacing: 12 * settings.textScale) {
-                        Text("Heart Rate Monitor")
-                            .font(.system(size: 20 * settings.textScale, weight: .bold))
+                        // MARK: - Heart Rate Monitor
+                        VStack(spacing: 12 * settings.textScale) {
+                            Text("Heart Rate Monitor")
+                                .font(.system(size: 20 * settings.textScale, weight: .bold))
 
-                        Chart(hrStream.series) {
-                            LineMark(
-                                x: .value("Time", $0.time),
-                                y: .value("BPM", $0.bpm)
+                            Chart(hrStream.series) {
+                                LineMark(
+                                    x: .value("Time", $0.time),
+                                    y: .value("BPM", $0.bpm)
+                                )
+                                .foregroundStyle(.red)
+                                .lineStyle(StrokeStyle(lineWidth: 3))
+
+                                PointMark(
+                                    x: .value("Time", $0.time),
+                                    y: .value("BPM", $0.bpm)
+                                )
+                                .foregroundStyle(.red)
+                            }
+                            .chartScrollableAxes(.horizontal)
+                            .chartScrollPosition(x: $chartScrollX)
+                            .simultaneousGesture(
+                                DragGesture().onChanged { _ in
+                                    autoFollowLatest = false
+                                }
                             )
-                            .foregroundStyle(.red)
-                            .lineStyle(StrokeStyle(lineWidth: 3))
-
-                            PointMark(
-                                x: .value("Time", $0.time),
-                                y: .value("BPM", $0.bpm)
+                            .chartXScale(domain: visibleDomain())
+                            .chartXAxis {
+                                AxisMarks(values: .stride(by: .second, count: 5)) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel(format: .dateTime.second(.twoDigits))
+                                }
+                            }
+                            .chartYScale(domain: bpmDomain())
+                            .chartYAxis {
+                                let domain = bpmDomain()
+                                let lower = Int(domain.lowerBound.rounded(.down))
+                                let upper = Int(domain.upperBound.rounded(.up))
+                                AxisMarks(
+                                    values: Array(stride(from: lower, through: upper, by: 10))
+                                ) {
+                                    AxisGridLine()
+                                    AxisTick()
+                                    AxisValueLabel()
+                                }
+                            }
+                            .chartYAxisLabel("BPM")
+                            .frame(height: 180 * settings.textScale)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(settings.theme == .light ? .white : Color(.systemGray6))
+                                    .shadow(radius: 2)
                             )
-                            .foregroundStyle(.red)
-                        }
-                        .chartScrollableAxes(.horizontal)
-                        .chartScrollPosition(x: $chartScrollX)
-                        .simultaneousGesture(
-                            DragGesture().onChanged { _ in
-                                autoFollowLatest = false
-                            }
-                        )
-                        .chartXScale(domain: visibleDomain())
-                        .chartXAxis {
-                            AxisMarks(values: .stride(by: .second, count: 5)) {
-                                AxisGridLine()
-                                AxisTick()
-                                AxisValueLabel(format: .dateTime.second(.twoDigits))
+                            .padding(.horizontal)
+
+                            Text("Current: \(hrStream.series.last?.bpm ?? 0) bpm")
+                                .font(.system(size: 16 * settings.textScale, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            if !autoFollowLatest {
+                                Button("Follow Live") {
+                                    autoFollowLatest = true
+                                    chartScrollX = latestSample?.time ?? Date()
+                                }
+                                .font(.footnote)
+                                .buttonStyle(.borderedProminent)
                             }
                         }
-                        .chartYScale(domain: bpmDomain())
-                        .chartYAxis {
-                            let domain = bpmDomain()
-                            let lower = Int(domain.lowerBound.rounded(.down))
-                            let upper = Int(domain.upperBound.rounded(.up))
-                            AxisMarks(
-                                values: Array(stride(from: lower, through: upper, by: 10))
-                            ) {
-                                AxisGridLine()
-                                AxisTick()
-                                AxisValueLabel()
-                            }
+
+                        // MARK: - Seizure Button
+                        Button("SEIZURE DETECTED") {
+                            registerSpike()
                         }
-                        .chartYAxisLabel("BPM")
-                        .frame(height: 180 * settings.textScale)
-                        .padding()
+                        .font(.system(size: 36 * settings.textScale, weight: .bold))
+                        .padding(.vertical, 20 * settings.textScale)
+                        .frame(maxWidth: .infinity)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(settings.theme == .light ? .white : Color(.systemGray6))
-                                .shadow(radius: 2)
+                            seizureDetected
+                            ? Color.red.opacity(flashOpacity)
+                            : (settings.theme == .light
+                               ? Color(.systemGray3)
+                               : Color(.systemGray5))
                         )
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding()
+
+                        Spacer()
+
+                        // MARK: - Bottom Buttons
+                        HStack(spacing: 12 * settings.textScale) {
+                            Button("ACCEPT") {
+                                // You can define accept behavior here if needed in the future
+                            }
+                            .buttonStyle(BottomButtonStyle(color: .blue, textScale: settings.textScale))
+
+                            Button("MUTE") {
+                                // Stop the alert if active
+                                if seizureDetected {
+                                    DispatchQueue.main.async {
+                                        stopAlert()
+                                    }
+                                }
+                            }
+                            .buttonStyle(BottomButtonStyle(color: .gray, textScale: settings.textScale))
+
+                            Button("RAISE") {
+                                // If not currently flashing, start the alert
+                                if !isFlashing && !seizureDetected {
+                                    registerSpike()
+                                }
+                            }
+                            .buttonStyle(BottomButtonStyle(color: .red, textScale: settings.textScale))
+                        }
                         .padding(.horizontal)
 
-                        Text("Current: \(hrStream.series.last?.bpm ?? 0) bpm")
-                            .font(.system(size: 16 * settings.textScale, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        if !autoFollowLatest {
-                            Button("Follow Live") {
-                                autoFollowLatest = true
-                                chartScrollX = latestSample?.time ?? Date()
-                            }
-                            .font(.footnote)
-                            .buttonStyle(.borderedProminent)
-                        }
+                        Spacer()
+                        Spacer()
                     }
-
-                    // MARK: - Seizure Button
-                    Button("SEIZURE DETECTED") {
-                        registerSpike()
-                    }
-                    .font(.system(size: 36 * settings.textScale, weight: .bold))
-                    .padding(.vertical, 20 * settings.textScale)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        seizureDetected
-                        ? Color.red.opacity(flashOpacity)
-                        : (settings.theme == .light
-                           ? Color(.systemGray3)
-                           : Color(.systemGray5))
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding()
-
-                    Spacer()
-
-                    // MARK: - Bottom Buttons
-                    HStack(spacing: 12 * settings.textScale) {
-                        Button("ACCEPT") {}
-                            .buttonStyle(BottomButtonStyle(color: .blue))
-
-                        Button("MUTE") {}
-                            .buttonStyle(BottomButtonStyle(color: .gray))
-
-                        Button("RAISE") {}
-                            .buttonStyle(BottomButtonStyle(color: .red))
-                    }
-                    .padding(.horizontal)
-
-                    Spacer()
-                    Spacer()
                 }
+                .padding(.vertical)
                 .sheet(isPresented: $showSettings) {
                     SettingsView()
                         .environmentObject(settings)
@@ -329,14 +346,26 @@ struct ContentView: View {
 // MARK: - Button Style
 struct BottomButtonStyle: ButtonStyle {
     let color: Color
+    let textScale: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(.vertical, 10)
+            .font(.system(size: 16 * textScale, weight: .semibold))
+            .padding(.vertical, 10 * textScale)
             .frame(maxWidth: .infinity)
-            .background(color.opacity(configuration.isPressed ? 0.7 : 1))
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(color.opacity(configuration.isPressed ? 0.7 : 1))
+            )
+            .foregroundStyle(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(
+                        colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.05),
+                        lineWidth: 1
+                    )
+            )
     }
 }
 
