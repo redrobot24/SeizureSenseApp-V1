@@ -2,6 +2,7 @@ import Foundation
 import HealthKit
 
 final class HeartRateReader {
+
     private let healthStore = HKHealthStore()
     private let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
 
@@ -10,51 +11,63 @@ final class HeartRateReader {
     private var observerQuery: HKObserverQuery?
 
     func start(onSamples: @escaping ([HKQuantitySample]) -> Void) {
-        // Observer for new samples
-        let observer = HKObserverQuery(sampleType: heartRateType, predicate: nil) { [weak self] _, completion, error in
-            guard error == nil else { completion(); return }
-            self?.runAnchoredQuery(onSamples: onSamples) {
-                completion()
+
+        // Create ONE anchored query for live updates
+        let startDate = Calendar.current.date(byAdding: .hour, value: -4, to: Date())
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: nil,
+            options: []
+        )
+
+        let anchored = HKAnchoredObjectQuery(
+            type: heartRateType,
+            predicate: predicate,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit
+        ) { [weak self] _, samples, _, newAnchor, error in
+            guard error == nil else { return }
+            self?.anchor = newAnchor
+            if let samples = samples as? [HKQuantitySample] {
+                Task { @MainActor in
+                    onSamples(samples)
+                }
             }
         }
-        healthStore.execute(observer)
-        observerQuery = observer
 
-        // Initial load + attach live updates
-        runAnchoredQuery(onSamples: onSamples, completion: {})
-    }
-
-    func stop() {
-        if let q = anchoredQuery { healthStore.stop(q) }
-        if let q = observerQuery { healthStore.stop(q) }
-        anchoredQuery = nil
-        observerQuery = nil
-    }
-
-    private func runAnchoredQuery(onSamples: @escaping ([HKQuantitySample]) -> Void, completion: @escaping () -> Void) {
-        let startDate = Calendar.current.date(byAdding: .hour, value: -4, to: Date())
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: nil, options: [])
-
-        let query = HKAnchoredObjectQuery(type: heartRateType,
-                                          predicate: predicate,
-                                          anchor: anchor,
-                                          limit: HKObjectQueryNoLimit) { [weak self] _, newSamples, _, newAnchor, error in
-            guard error == nil else { completion(); return }
+        anchored.updateHandler = { [weak self] _, samples, _, newAnchor, error in
+            guard error == nil else { return }
             self?.anchor = newAnchor
-            if let samples = newSamples as? [HKQuantitySample] {
-                onSamples(samples)
+            if let samples = samples as? [HKQuantitySample] {
+                Task { @MainActor in
+                    onSamples(samples)
+                }
             }
+        }
+
+        healthStore.execute(anchored)
+        anchoredQuery = anchored
+
+        // Observer just wakes HealthKit (does NOT create queries)
+        let observer = HKObserverQuery(
+            sampleType: heartRateType,
+            predicate: nil
+        ) { _, completion, _ in
             completion()
         }
 
-        query.updateHandler = { [weak self] _, newSamples, _, newAnchor, _ in
-            self?.anchor = newAnchor
-            if let samples = newSamples as? [HKQuantitySample] {
-                onSamples(samples)
-            }
-        }
+        healthStore.execute(observer)
+        observerQuery = observer
+    }
 
-        healthStore.execute(query)
-        anchoredQuery = query
+    func stop() {
+        if let anchoredQuery {
+            healthStore.stop(anchoredQuery)
+        }
+        if let observerQuery {
+            healthStore.stop(observerQuery)
+        }
+        anchoredQuery = nil
+        observerQuery = nil
     }
 }

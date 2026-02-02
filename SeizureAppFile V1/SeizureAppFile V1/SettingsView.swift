@@ -67,8 +67,7 @@ struct SettingsView: View {
                             settingsButton(title: "Messaging", icon: "message") { MessagingView() }
                             settingsButton(title: "Threshold Settings", icon: "slider.horizontal.3") { ThresholdViewBlue() }
                             settingsButton(title: "Calendar", icon: "calendar") { CalendarView(store: seizureStore) }
-                            settingsButton(title: "Wi-Fi", icon: "wifi") { WifiView() }
-                            settingsButton(title: "Bluetooth", icon: "bolt.horizontal") { BluetoothView() }
+                            
                         }
                         .padding(.horizontal)
                         

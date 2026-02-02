@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Charts
+import CoreMotion
 
 struct ContentView: View {
 
@@ -27,11 +28,16 @@ struct ContentView: View {
     @State private var lastSpikeTime: Date?
     @State private var stabilizationTimer: Timer?
 
+    @State private var motionMonitoringEnabled = true
+    @State private var lastMotionSpike: Date?
+    @State private var lastHRSpike: Date?
+
     // MARK: - Detection / Stabilization Tuning
     private let spikeRiseThreshold: Int = 20
     private let spikeWindowSeconds: TimeInterval = 10
     private let stabilizationVarianceThreshold: Double = 8
     private let stabilizationSustainSeconds: TimeInterval = 10
+    private let coincidenceWindowSeconds: TimeInterval = 3
 
     // MARK: - Heart Rate
     private let providedStream: HeartRateStream?
@@ -145,6 +151,22 @@ struct ContentView: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .padding()
+                        
+                        // Motion Monitoring Status
+                        HStack {
+                            Circle()
+                                .fill(motionMonitoringEnabled ? Color.green : Color.red)
+                                .frame(width: 10, height: 10)
+                            Text(motionMonitoringEnabled ? "Motion Monitoring: On" : "Motion Monitoring: Off")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            if let t = lastMotionSpike {
+                                Text(" • Last Spike: \(t.formatted(date: .omitted, time: .standard))")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.horizontal)
 
                         Spacer()
 
@@ -195,8 +217,24 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(settings.theme == .light ? .light : .dark)
-        .onAppear { hrStream.start() }
+        .onAppear {
+            hrStream.start()
+            // Hook motion spike to seizure button logic
+            MotionManager.shared.onSeizureSpike = {
+                DispatchQueue.main.async {
+                    self.lastMotionSpike = Date()
+                    self.evaluateCombinedSpike()
+                }
+            }
+            MotionManager.shared.useMockData = true
+            MotionManager.shared.start()
+            motionMonitoringEnabled = true
+        }
         .onDisappear {
+            MotionManager.shared.stop()
+            MotionManager.shared.onSeizureSpike = nil
+            motionMonitoringEnabled = false
+
             hrStream.stop()
             stopStabilizationMonitor()
         }
@@ -240,6 +278,7 @@ struct ContentView: View {
 
     // MARK: - Spike Detection
     func detectSpikeFromHeartRate() {
+        //takes HR and time from last spike window
         let now = Date()
         let recent = hrStream.series.filter {
             now.timeIntervalSince($0.time) <= spikeWindowSeconds
@@ -247,9 +286,10 @@ struct ContentView: View {
 
         guard let first = recent.first,
               let last = recent.last else { return }
-
+        //subtract first and last HR value in window to compare to threshold
         if (last.bpm - first.bpm) >= spikeRiseThreshold {
-            registerSpike()
+            lastHRSpike = Date()
+            evaluateCombinedSpike()
         }
     }
 
@@ -260,6 +300,28 @@ struct ContentView: View {
         startFlashingIfNeeded()
         startStabilizationMonitor()
     }
+
+    // MARK: - Combined Spike Evaluation
+    func evaluateCombinedSpike() {
+        let now = Date()
+
+        // Check if HR spike happened recently
+        guard let hrTime = lastHRSpike, now.timeIntervalSince(hrTime) <= coincidenceWindowSeconds else { return }
+
+        // Check if motion spike happened recently
+        guard let motionTime = lastMotionSpike, now.timeIntervalSince(motionTime) <= coincidenceWindowSeconds else { return }
+
+        // Both spikes are recent → trigger seizure
+        lastHRSpike = nil
+        lastMotionSpike = nil
+        registerSpike()
+
+        // Automatically stop flashing after 2 seconds (or adjust as needed)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            stopAlert()
+        }
+    }
+
 
     // MARK: - Flashing Control
     func startFlashingIfNeeded() {
@@ -371,6 +433,7 @@ struct BottomButtonStyle: ButtonStyle {
 
 // MARK: - Preview
 #Preview {
-    ContentView(stream: MockHeartRateStream())
+    ContentView(stream: HeartRateStream())
         .environmentObject(AppSettings())
 }
+
