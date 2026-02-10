@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		99D660C02F3BF41A006820FE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		99D660C12F3BF435006820FE /* Watch_ViewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Watch_ViewApp.swift; sourceTree = "<group>"; };
+		99D660C22F3BF44A006820FE /* WatchHealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHealthKitManager.swift; sourceTree = "<group>"; };
+		99D660C32F3BF476006820FE /* WatchWorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManager.swift; sourceTree = "<group>"; };
 		E0907F252EBBA5A7003BC331 /* SeizureAppFile V1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SeizureAppFile V1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -29,9 +33,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		99D660BF2F3BF406006820FE /* Watch_View Watch App */ = {
+			isa = PBXGroup;
+			children = (
+				99D660C12F3BF435006820FE /* Watch_ViewApp.swift */,
+				99D660C32F3BF476006820FE /* WatchWorkoutManager.swift */,
+				99D660C22F3BF44A006820FE /* WatchHealthKitManager.swift */,
+				99D660C02F3BF41A006820FE /* ContentView.swift */,
+			);
+			path = "Watch_View Watch App";
+			sourceTree = "<group>";
+		};
 		E0907F1C2EBBA5A7003BC331 = {
 			isa = PBXGroup;
 			children = (
+				99D660BF2F3BF406006820FE /* Watch_View Watch App */,
 				E0907F272EBBA5A7003BC331 /* SeizureAppFile V1 */,
 				E0907F262EBBA5A7003BC331 /* Products */,
 			);

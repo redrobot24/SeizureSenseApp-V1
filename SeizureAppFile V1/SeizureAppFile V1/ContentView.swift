@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  Seizure Sense UI
-//
-//  Created by Sarah Yonosh
-//
-
 import SwiftUI
 import SwiftData
 import Charts
@@ -17,11 +10,12 @@ struct ContentView: View {
 
     // MARK: - Chart
     @State private var chartScrollX: Date = Date()
-
     @State private var autoFollowLatest = true
-    @EnvironmentObject var settings: AppSettings
 
-    // MARK: - Alert / Seizure State
+    @EnvironmentObject var settings: AppSettings
+    @StateObject private var connectivity = PhoneConnectivityManager()
+    
+    // MARK: - Seizure / Alert State
     @State private var seizureDetected = false
     @State private var isFlashing = false
     @State private var flashOpacity: Double = 1.0
@@ -32,14 +26,14 @@ struct ContentView: View {
     @State private var lastMotionSpike: Date?
     @State private var lastHRSpike: Date?
 
-    // MARK: - Detection / Stabilization Tuning
+    // MARK: - Detection Tuning
     private let spikeRiseThreshold: Int = 20
     private let spikeWindowSeconds: TimeInterval = 10
     private let stabilizationVarianceThreshold: Double = 8
     private let stabilizationSustainSeconds: TimeInterval = 10
     private let coincidenceWindowSeconds: TimeInterval = 3
 
-    // MARK: - Heart Rate
+    // MARK: - Heart Rate Stream
     private let providedStream: HeartRateStream?
     @StateObject private var hrStream: HeartRateStream
 
@@ -48,11 +42,10 @@ struct ContentView: View {
         self.providedStream = stream
     }
 
-    // MARK: - UI
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ZStack {
-
                 // Background
                 (settings.theme == .light
                  ? Color(red: 0.85, green: 0.93, blue: 1.0)
@@ -102,9 +95,7 @@ struct ContentView: View {
                                 let domain = bpmDomain()
                                 let lower = Int(domain.lowerBound.rounded(.down))
                                 let upper = Int(domain.upperBound.rounded(.up))
-                                AxisMarks(
-                                    values: Array(stride(from: lower, through: upper, by: 10))
-                                ) {
+                                AxisMarks(values: Array(stride(from: lower, through: upper, by: 10))) {
                                     AxisGridLine()
                                     AxisTick()
                                     AxisValueLabel()
@@ -120,7 +111,7 @@ struct ContentView: View {
                             )
                             .padding(.horizontal)
 
-                            Text("Current: \(hrStream.series.last?.bpm ?? 0) bpm")
+                            Text("Current: \(hrStream.latestBPM) bpm")
                                 .font(.system(size: 16 * settings.textScale, weight: .medium))
                                 .foregroundColor(.secondary)
 
@@ -169,35 +160,6 @@ struct ContentView: View {
                         .padding(.horizontal)
 
                         Spacer()
-
-                        // MARK: - Bottom Buttons
-                        HStack(spacing: 12 * settings.textScale) {
-                            Button("ACCEPT") {
-                                // You can define accept behavior here if needed in the future
-                            }
-                            .buttonStyle(BottomButtonStyle(color: .blue, textScale: settings.textScale))
-
-                            Button("MUTE") {
-                                // Stop the alert if active
-                                if seizureDetected {
-                                    DispatchQueue.main.async {
-                                        stopAlert()
-                                    }
-                                }
-                            }
-                            .buttonStyle(BottomButtonStyle(color: .gray, textScale: settings.textScale))
-
-                            Button("RAISE") {
-                                // If not currently flashing, start the alert
-                                if !isFlashing && !seizureDetected {
-                                    registerSpike()
-                                }
-                            }
-                            .buttonStyle(BottomButtonStyle(color: .red, textScale: settings.textScale))
-                        }
-                        .padding(.horizontal)
-
-                        Spacer()
                         Spacer()
                     }
                 }
@@ -219,7 +181,8 @@ struct ContentView: View {
         .preferredColorScheme(settings.theme == .light ? .light : .dark)
         .onAppear {
             hrStream.start()
-            // Hook motion spike to seizure button logic
+            
+            // Motion spike hook
             MotionManager.shared.onSeizureSpike = {
                 DispatchQueue.main.async {
                     self.lastMotionSpike = Date()
@@ -234,22 +197,17 @@ struct ContentView: View {
             MotionManager.shared.stop()
             MotionManager.shared.onSeizureSpike = nil
             motionMonitoringEnabled = false
-
             hrStream.stop()
             stopStabilizationMonitor()
         }
-        .onChange(of: hrStream.latestBPM) { _, _ in
-            detectSpikeFromHeartRate()
-            evaluateStabilization()
-
-            if autoFollowLatest {
-                chartScrollX = latestSample?.time ?? Date()
-            }
+        // MARK: - Timer for automatic chart scroll
+        .onReceive(Timer.publish(every: 0.3, on: .main, in: .common).autoconnect()) { _ in
+            guard autoFollowLatest else { return }
+            chartScrollX = latestSample?.time ?? Date()
         }
     }
 
     // MARK: - Helpers
-
     private var latestSample: HeartRatePoint? {
         hrStream.series.last
     }
@@ -276,24 +234,7 @@ struct ContentView: View {
         return lower...upper
     }
 
-    // MARK: - Spike Detection
-    func detectSpikeFromHeartRate() {
-        //takes HR and time from last spike window
-        let now = Date()
-        let recent = hrStream.series.filter {
-            now.timeIntervalSince($0.time) <= spikeWindowSeconds
-        }
-
-        guard let first = recent.first,
-              let last = recent.last else { return }
-        //subtract first and last HR value in window to compare to threshold
-        if (last.bpm - first.bpm) >= spikeRiseThreshold {
-            lastHRSpike = Date()
-            evaluateCombinedSpike()
-        }
-    }
-
-    // MARK: - Spike Registration
+    // MARK: - Seizure / Spike Logic
     func registerSpike() {
         lastSpikeTime = Date()
         seizureDetected = true
@@ -301,47 +242,28 @@ struct ContentView: View {
         startStabilizationMonitor()
     }
 
-    // MARK: - Combined Spike Evaluation
     func evaluateCombinedSpike() {
         let now = Date()
-
-        // Check if HR spike happened recently
         guard let hrTime = lastHRSpike, now.timeIntervalSince(hrTime) <= coincidenceWindowSeconds else { return }
-
-        // Check if motion spike happened recently
         guard let motionTime = lastMotionSpike, now.timeIntervalSince(motionTime) <= coincidenceWindowSeconds else { return }
-
-        // Both spikes are recent → trigger seizure
         lastHRSpike = nil
         lastMotionSpike = nil
         registerSpike()
-
-        // Automatically stop flashing after 2 seconds (or adjust as needed)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            stopAlert()
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { stopAlert() }
     }
 
-
-    // MARK: - Flashing Control
     func startFlashingIfNeeded() {
         guard !isFlashing else { return }
-
         isFlashing = true
         flashOpacity = 1.0
-
         withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
             flashOpacity = 0.4
         }
     }
 
-    // MARK: - Stabilization Logic
     func startStabilizationMonitor() {
         stabilizationTimer?.invalidate()
-        stabilizationTimer = Timer.scheduledTimer(
-            withTimeInterval: 0.5,
-            repeats: true
-        ) { _ in
+        stabilizationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             evaluateStabilization()
         }
     }
@@ -353,13 +275,9 @@ struct ContentView: View {
 
     func evaluateStabilization() {
         guard seizureDetected else { return }
-
         let window = max(spikeWindowSeconds, stabilizationSustainSeconds)
         let now = Date()
-        let recent = hrStream.series.filter {
-            now.timeIntervalSince($0.time) <= window
-        }
-
+        let recent = hrStream.series.filter { now.timeIntervalSince($0.time) <= window }
         guard recent.count >= 5 else { return }
 
         let bpms = recent.map { Double($0.bpm) }
@@ -367,29 +285,20 @@ struct ContentView: View {
         let variance = bpms.map { pow($0 - mean, 2) }.reduce(0, +) / Double(bpms.count)
         let stddev = sqrt(variance)
 
-        if stddev <= stabilizationVarianceThreshold {
-            if hasBeenStableFor(
-                atLeast: stabilizationSustainSeconds,
-                threshold: stabilizationVarianceThreshold
-            ) {
-                stopAlert()
-            }
+        if stddev <= stabilizationVarianceThreshold,
+           hasBeenStableFor(atLeast: stabilizationSustainSeconds, threshold: stabilizationVarianceThreshold) {
+            stopAlert()
         }
     }
 
     func hasBeenStableFor(atLeast seconds: TimeInterval, threshold: Double) -> Bool {
         let now = Date()
-        let recent = hrStream.series.filter {
-            now.timeIntervalSince($0.time) <= seconds
-        }
-
+        let recent = hrStream.series.filter { now.timeIntervalSince($0.time) <= seconds }
         guard recent.count >= 5 else { return false }
-
         let bpms = recent.map { Double($0.bpm) }
         let mean = bpms.reduce(0, +) / Double(bpms.count)
         let variance = bpms.map { pow($0 - mean, 2) }.reduce(0, +) / Double(bpms.count)
         let stddev = sqrt(variance)
-
         return stddev <= threshold
     }
 
@@ -398,10 +307,7 @@ struct ContentView: View {
         lastSpikeTime = nil
         seizureDetected = false
         isFlashing = false
-
-        withAnimation(.none) {
-            flashOpacity = 1.0
-        }
+        withAnimation(.none) { flashOpacity = 1.0 }
     }
 }
 
@@ -436,4 +342,3 @@ struct BottomButtonStyle: ButtonStyle {
     ContentView(stream: HeartRateStream())
         .environmentObject(AppSettings())
 }
-

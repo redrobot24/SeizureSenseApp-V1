@@ -1,73 +1,128 @@
 import Foundation
 import HealthKit
 
-final class HeartRateReader {
+final class HeartRateReader: NSObject {
 
     private let healthStore = HKHealthStore()
     private let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
 
+    // Anchored query storage
+    private var heartRateQuery: HKAnchoredObjectQuery?
     private var anchor: HKQueryAnchor?
-    private var anchoredQuery: HKAnchoredObjectQuery?
+
+    // Observer query for background delivery
     private var observerQuery: HKObserverQuery?
 
-    func start(onSamples: @escaping ([HKQuantitySample]) -> Void) {
+    // Silent workout session
+    private var workoutSession: HKWorkoutSession?
+    private var workoutBuilder: HKLiveWorkoutBuilder?
 
-        // Create ONE anchored query for live updates
-        let startDate = Calendar.current.date(byAdding: .hour, value: -4, to: Date())
-        let predicate = HKQuery.predicateForSamples(
-            withStart: startDate,
-            end: nil,
-            options: []
-        )
+    // MARK: - Start reading HR
+    func start(onUpdate: @escaping ([HKQuantitySample]) -> Void) {
 
-        let anchored = HKAnchoredObjectQuery(
-            type: heartRateType,
-            predicate: predicate,
-            anchor: anchor,
-            limit: HKObjectQueryNoLimit
-        ) { [weak self] _, samples, _, newAnchor, error in
-            guard error == nil else { return }
-            self?.anchor = newAnchor
-            if let samples = samples as? [HKQuantitySample] {
-                Task { @MainActor in
-                    onSamples(samples)
-                }
+        // 1️⃣ Enable background delivery
+        healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { success, error in
+            if let error = error {
+                print("Background delivery error: \(error)")
+            } else {
+                print("Background delivery enabled: \(success)")
             }
         }
 
-        anchored.updateHandler = { [weak self] _, samples, _, newAnchor, error in
-            guard error == nil else { return }
-            self?.anchor = newAnchor
-            if let samples = samples as? [HKQuantitySample] {
-                Task { @MainActor in
-                    onSamples(samples)
-                }
+        // 2️⃣ Start silent workout session
+        startWorkoutSession()
+
+        // 3️⃣ Observer query to detect new HR samples
+        observerQuery = HKObserverQuery(sampleType: heartRateType, predicate: nil) { [weak self] _, completionHandler, error in
+            if let error = error {
+                print("Observer query error: \(error)")
+                completionHandler()
+                return
             }
+
+            self?.fetchNewSamples(onUpdate: onUpdate)
+            completionHandler()
         }
 
-        healthStore.execute(anchored)
-        anchoredQuery = anchored
-
-        // Observer just wakes HealthKit (does NOT create queries)
-        let observer = HKObserverQuery(
-            sampleType: heartRateType,
-            predicate: nil
-        ) { _, completion, _ in
-            completion()
+        if let observerQuery = observerQuery {
+            healthStore.execute(observerQuery)
         }
 
-        healthStore.execute(observer)
-        observerQuery = observer
+        // 4️⃣ Fetch initial data
+        fetchNewSamples(onUpdate: onUpdate)
     }
 
+    // MARK: - Stop reading HR
     func stop() {
-        if let anchoredQuery {
-            healthStore.stop(anchoredQuery)
+        if let query = heartRateQuery {
+            healthStore.stop(query)
+            heartRateQuery = nil
         }
-        if let observerQuery {
-            healthStore.stop(observerQuery)
+
+        if let query = observerQuery {
+            healthStore.stop(query)
+            observerQuery = nil
         }
-        anchoredQuery = nil
-        observerQuery = nil
+
+        workoutSession?.stopActivity(with: Date())
+        workoutSession?.end()
+        workoutSession = nil
+        workoutBuilder = nil
+    }
+
+    // MARK: - Silent workout session
+    private func startWorkoutSession() {
+        let config = HKWorkoutConfiguration()
+        config.activityType = .other
+        config.locationType = .indoor
+
+        do {
+            workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: config)
+            workoutBuilder = workoutSession!.associatedWorkoutBuilder()
+
+            workoutBuilder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: config)
+            workoutSession?.delegate = self
+
+            workoutSession?.startActivity(with: Date())
+            workoutBuilder?.beginCollection(withStart: Date()) { _, _ in
+                print("Workout collection started")
+            }
+
+        } catch {
+            print("Error starting workout session: \(error)")
+        }
+    }
+
+    // MARK: - Fetch new HR samples
+    private func fetchNewSamples(onUpdate: @escaping ([HKQuantitySample]) -> Void) {
+        let query = HKAnchoredObjectQuery(
+            type: heartRateType,
+            predicate: nil,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit
+        ) { [weak self] _, samples, _, newAnchor, _ in
+            self?.anchor = newAnchor
+            onUpdate(samples as? [HKQuantitySample] ?? [])
+        }
+
+        query.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
+            self?.anchor = newAnchor
+            onUpdate(samples as? [HKQuantitySample] ?? [])
+        }
+
+        heartRateQuery = query
+        healthStore.execute(query)
+    }
+}
+
+// MARK: - HKWorkoutSessionDelegate
+extension HeartRateReader: HKWorkoutSessionDelegate {
+    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
+                        from fromState: HKWorkoutSessionState, date: Date) {
+        // Optional: handle session state changes
+    }
+
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        print("Workout session error: \(error)")
     }
 }

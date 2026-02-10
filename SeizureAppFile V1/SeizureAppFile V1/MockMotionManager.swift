@@ -1,69 +1,154 @@
 import Foundation
+import CoreMotion
 
-/// A mock motion manager simulating accelerometer magnitude data with occasional seizure spike bursts.
-/// Callbacks and API mirror the expected MotionManager interface.
-public class MockMotionManager {
-    public static let shared = MockMotionManager()
+final class MotionManager {
+    static let shared = MotionManager()
 
-    /// Called once at the start of each simulated seizure spike burst.
-    public var onSeizureSpike: (() -> Void)?
+    private let motionManager = CMMotionManager()
+    private let queue = OperationQueue()
+    private var mockTimer:Timer?
+    var useMockData: Bool = true
+    // Configuration
+    struct Configuration {
+        var updateInterval: TimeInterval = 1.0 / 50.0 // 50 Hz
+        var spikeDeltaThreshold: Double = 1.5 // change in g magnitude considered a spike
+        var absoluteMagnitudeThreshold: Double = 3.0 // absolute g magnitude considered a spike
+        var debounceInterval: TimeInterval = 5.0 // seconds to wait between spike notifications
+        var minimumSamplesForDelta: Int = 3 // number of samples to compute delta
+    }
 
-    private var timer: Timer?
-    private var spikeActive = false
-    private var spikeStartTime: Date?
+    var config = Configuration()
 
-    private init() {}
+    // Callback to trigger when a spike is detected (hook this to your button action)
+    var onSeizureSpike: (() -> Void)?
 
-    /// Starts the mock motion updates.
-    /// Fires every 0.2 seconds with normal small random noise values around 0.05-0.15 g.
-    /// Every ~10 seconds a spike burst lasting ~2 seconds occurs with magnitude 2.0-3.0 g.
-    /// Calls onSeizureSpike once at the start of the spike burst.
-    public func start() {
-        guard timer == nil else { return }
+    // State
+    private var recentMagnitudes: [Double] = []
+    private var lastSpikeDate: Date?
+    private var isRunning = false
 
-        spikeActive = false
-        spikeStartTime = nil
+    private init() {
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+    }
 
-        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+    func start() {
+        guard !isRunning else { return }
+        isRunning = true
+        recentMagnitudes.removeAll(keepingCapacity: true)
+
+        if useMockData {
+            startMockAccelerometer()
+        } else {
+            startRealAccelerometer()
+        }
+    }
+    private func startRealAccelerometer() {
+        guard motionManager.isAccelerometerAvailable else { return }
+
+        motionManager.accelerometerUpdateInterval = config.updateInterval
+
+        motionManager.startAccelerometerUpdates(to: queue) { [weak self] data, _ in
+            guard let self = self, let data = data else { return }
+            self.handleAccelerometer(data)
+        }
+    }
+    private func startMockAccelerometer() {
+        let interval = config.updateInterval
+
+        mockTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
 
-            let now = Date()
+            let ax = Double.random(in: -3.0...4.0)
+            let ay = Double.random(in: -3.0...4.0)
+            let az = Double.random(in: -3.0...4.0)
 
-            if let spikeStart = self.spikeStartTime {
-                // During spike burst (~2 seconds)
-                let elapsed = now.timeIntervalSince(spikeStart)
-                if elapsed < 2.0 {
-                    // Spike magnitude between 2.0 and 3.0 g with some variability
-                    _ = Double.random(in: 2.0...3.0)
-                    // (In a real app, here would be code to feed this spikeMagnitude to listeners)
-                } else {
-                    // End spike burst
-                    self.spikeActive = false
-                    self.spikeStartTime = nil
-                    // After spike ends, normal random noise continues
-                    // (No callback here)
-                }
-            } else {
-                // Not currently in spike burst
-                _ = Double.random(in: 0.05...0.15)
-                // (In a real app, here would be code to feed this normalMagnitude to listeners)
-
-                // Chance to start a spike burst roughly every 10 seconds
-                // Timer fires every 0.2s, so probability ~0.2/10 = 0.02 per tick
-                if Double.random(in: 0..<1) < 0.02 {
-                    self.spikeActive = true
-                    self.spikeStartTime = now
-                    self.onSeizureSpike?()
-                }
-            }
+            let magnitude = sqrt(ax * ax + ay * ay + az * az)
+            self.handleMockMagnitude(magnitude)
         }
     }
 
-    /// Stops the mock motion updates and resets internal state.
-    public func stop() {
-        timer?.invalidate()
-        timer = nil
-        spikeActive = false
-        spikeStartTime = nil
+
+    func stop() {
+        guard isRunning else { return }
+        isRunning = false
+
+        motionManager.stopAccelerometerUpdates()
+        mockTimer?.invalidate()
+        mockTimer = nil
+
+        recentMagnitudes.removeAll()
+    }
+
+
+    private func handleAccelerometer(_ data: CMAccelerometerData) {
+        // Compute g magnitude
+        let ax = data.acceleration.x
+        let ay = data.acceleration.y
+        let az = data.acceleration.z
+        let magnitude = sqrt(ax * ax + ay * ay + az * az)
+
+        // Keep rolling buffer
+        recentMagnitudes.append(magnitude)
+        let maxCount = max(config.minimumSamplesForDelta, 5)
+        if recentMagnitudes.count > maxCount { recentMagnitudes.removeFirst(recentMagnitudes.count - maxCount) }
+
+        // Absolute threshold check
+        let absoluteSpike = magnitude >= config.absoluteMagnitudeThreshold
+
+        // Delta threshold check (compare current magnitude to mean of previous samples)
+        var deltaSpike = false
+        if recentMagnitudes.count >= config.minimumSamplesForDelta {
+            let previous = recentMagnitudes.dropLast()
+            if !previous.isEmpty {
+                let meanPrev = previous.reduce(0, +) / Double(previous.count)
+                let delta = abs(magnitude - meanPrev)
+                deltaSpike = delta >= config.spikeDeltaThreshold
+            }
+        }
+
+        if absoluteSpike || deltaSpike {
+            notifySpikeIfNeeded()
+        }
+    }
+    private func handleMockMagnitude(_ magnitude: Double) {
+        recentMagnitudes.append(magnitude)
+
+        let maxCount = max(config.minimumSamplesForDelta, 5)
+        if recentMagnitudes.count > maxCount {
+            recentMagnitudes.removeFirst(recentMagnitudes.count - maxCount)
+        }
+
+        let absoluteSpike = magnitude >= config.absoluteMagnitudeThreshold
+
+        var deltaSpike = false
+        if recentMagnitudes.count >= config.minimumSamplesForDelta {
+            let previous = recentMagnitudes.dropLast()
+            if !previous.isEmpty {
+                let meanPrev = previous.reduce(0, +) / Double(previous.count)
+                let delta = abs(magnitude - meanPrev)
+                deltaSpike = delta >= config.spikeDeltaThreshold
+            }
+        }
+
+        if absoluteSpike || deltaSpike {
+            notifySpikeIfNeeded()
+        }
+    }
+
+
+    private func notifySpikeIfNeeded() {
+        // Debounce notifications
+        let now = Date()
+        if let last = lastSpikeDate, now.timeIntervalSince(last) < config.debounceInterval {
+            return
+        }
+        lastSpikeDate = now
+        // Ensure callback on main thread for UI safety
+        if let callback = onSeizureSpike {
+            DispatchQueue.main.async {
+                callback()
+            }
+        }
     }
 }
