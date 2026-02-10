@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Charts
 import CoreMotion
+import Combine
 
 struct ContentView: View {
 
@@ -342,3 +343,4 @@ struct BottomButtonStyle: ButtonStyle {
     ContentView(stream: HeartRateStream())
         .environmentObject(AppSettings())
 }
+
