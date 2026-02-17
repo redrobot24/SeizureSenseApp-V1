@@ -1,75 +1,115 @@
-import Foundation
-import HealthKit
-import Combine
+//
+//  HeartRateStream.swift
+//  Maren-View
+//
 
+import Foundation
+import Combine
+import HealthKit
+
+// MARK: - Heart Rate Data Point
 struct HeartRatePoint: Identifiable {
     let id = UUID()
     let time: Date
     let bpm: Int
 }
 
-@MainActor
+// MARK: - Heart Rate Stream
 final class HeartRateStream: ObservableObject {
-
-    @Published var latestBPM: Int = 0
+    
     @Published var series: [HeartRatePoint] = []
+    // UI-observed state (must update on MainActor)
+    @Published private(set) var latestBPM: Int = 0
+    
+    private let healthStore = HKHealthStore()
+    private let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
 
-    // Optional chart scroll property
-    @Published var chartScrollX: Date = Date()
+    private var anchor: HKQueryAnchor?
+    private var query: HKAnchoredObjectQuery?
 
-    private let reader = HeartRateReader()
     private let maxPoints = 120
 
-    // Auto-follow the latest point on chart
-    var autoFollowLatest: Bool = true
-
-    // Throttle console logs to avoid flooding
-    private var lastLogTime: Date = Date(timeIntervalSince1970: 0)
-    private let logThrottleInterval: TimeInterval = 1.0 // seconds
-
-    // MARK: - Start streaming
+    // MARK: - Start Streaming
     func start() {
-        Task {
-            do {
-                try await HealthKitManager.shared.requestAuthorization()
+        guard HKHealthStore.isHealthDataAvailable() else { return }
 
-                reader.start { [weak self] samples in
-                    guard let self else { return }
+        let query = HKAnchoredObjectQuery(
+            type: heartRateType,
+            predicate: nil,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit
+        ) { [weak self] _, samples, _, newAnchor, error in
+            guard let self else { return }
+            self.anchor = newAnchor
+            self.process(samples)
+        }
 
-                    Task { @MainActor in
-                        for sample in samples {
-                            let bpm = Int(sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())).rounded())
-                            self.latestBPM = bpm
-                            self.series.append(HeartRatePoint(time: sample.endDate, bpm: bpm))
+        query.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
+            guard let self else { return }
+            self.anchor = newAnchor
+            self.process(samples)
+        }
 
-                            // Keep only most recent points
-                            if self.series.count > self.maxPoints {
-                                self.series.removeFirst(self.series.count - self.maxPoints)
-                            }
+        self.query = query
+        healthStore.execute(query)
+    }
+    // MARK: - Authorization + Start
+    func ensureAuthorizedThenStart() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
 
-                            // Auto-scroll chart
-                            if self.autoFollowLatest, let last = self.series.last {
-                                self.chartScrollX = last.time
-                            }
+        let typesToRead: Set = [heartRateType]
 
-                            // Throttled console log
-                            let now = Date()
-                            if now.timeIntervalSince(self.lastLogTime) >= self.logThrottleInterval {
-                                print("Latest BPM: \(self.latestBPM), series count: \(self.series.count)")
-                                self.lastLogTime = now
-                            }
-                        }
-                    }
+        healthStore.requestAuthorization(toShare: [], read: typesToRead) { [weak self] success, error in
+            if success {
+                DispatchQueue.main.async {
+                    self?.start()
                 }
-
-            } catch {
-                print("HealthKit authorization error:", error)
+            } else {
+                print("❌ HealthKit authorization failed:", error?.localizedDescription ?? "Unknown error")
             }
         }
     }
 
-    // MARK: - Stop streaming
+
+    // MARK: - Stop Streaming
     func stop() {
-        reader.stop()
+        if let query {
+            healthStore.stop(query)
+        }
+        query = nil
+    }
+
+    // MARK: - Process Samples (background-safe)
+    private func process(_ samples: [HKSample]?) {
+        guard let samples = samples as? [HKQuantitySample] else { return }
+
+        let unit = HKUnit.count().unitDivided(by: .minute())
+
+        let points = samples
+            .sorted { $0.endDate < $1.endDate }
+            .map {
+                HeartRatePoint(
+                    time: $0.endDate,
+                    bpm: Int($0.quantity.doubleValue(for: unit).rounded())
+                )
+            }
+
+        guard !points.isEmpty else { return }
+
+        // 🔑 Hop to MainActor ONLY for UI state updates
+        Task { @MainActor in
+            for point in points {
+                self.latestBPM = point.bpm
+                self.series.append(point)
+                // Inside HeartRateStream when you append a new point
+                print("Appending HR sample:", point.bpm, "at", point.time)
+            }
+
+            if self.series.count > self.maxPoints {
+                self.series.removeFirst(self.series.count - self.maxPoints)
+            }
+
+            print("HR updated:", self.latestBPM)
+        }
     }
 }

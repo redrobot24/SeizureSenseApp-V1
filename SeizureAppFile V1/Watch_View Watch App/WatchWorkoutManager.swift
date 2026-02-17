@@ -10,6 +10,36 @@ import HealthKit
 import WatchConnectivity
 import Combine
 
+
+final class ConnectivityManager: NSObject, ObservableObject {
+    override init() {
+        super.init()
+        if WCSession.isSupported() {
+            WCSession.default.delegate = self
+            WCSession.default.activate()
+        }
+    }
+}
+
+extension ConnectivityManager: WCSessionDelegate {
+#if os(iOS)
+    // iOS only
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) {
+        WCSession.default.activate()
+    }
+#endif
+
+    // watchOS and iOS
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if let error = error {
+            print("WCSession activation error:", error)
+        } else {
+            print("WCSession activated:", activationState.rawValue)
+        }
+    }
+}
+ 
 class WatchWorkoutManager: NSObject, HKLiveWorkoutBuilderDelegate, ObservableObject {
     let healthStore = HKHealthStore()
     var session: HKWorkoutSession?
@@ -53,3 +83,4 @@ class WatchWorkoutManager: NSObject, HKLiveWorkoutBuilderDelegate, ObservableObj
         }
     }
 }
+
