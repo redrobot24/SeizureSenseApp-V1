@@ -2,6 +2,7 @@ import SwiftUI
 import CoreLocation
 import Combine
 
+@MainActor
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private let manager = CLLocationManager()

@@ -1,6 +1,7 @@
 import Foundation
 import CoreMotion
 
+@MainActor
 final class MotionManager {
     static let shared = MotionManager()
 
@@ -145,10 +146,10 @@ final class MotionManager {
         }
         lastSpikeDate = now
         // Ensure callback on main thread for UI safety
-        if let callback = onSeizureSpike {
-            DispatchQueue.main.async {
-                callback()
-            }
-        }
+        //if let callback = onSeizureSpike {
+          //  DispatchQueue.main.async {
+          //      callback()
+         //   }
+        //}
     }
 }

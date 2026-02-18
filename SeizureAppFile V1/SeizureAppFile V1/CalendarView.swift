@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 
+@MainActor
 class SeizureStore: ObservableObject {
     @Published var seizureDates: Set<Date> = []
     

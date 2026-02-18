@@ -78,9 +78,9 @@ class WatchWorkoutManager: NSObject, HKLiveWorkoutBuilderDelegate, ObservableObj
     }
 
     func sendHeartRate(_ bpm: Int) {
-        if WCSession.default.isReachable {
+        
             WCSession.default.sendMessage(["bpm": bpm], replyHandler: nil, errorHandler: nil)
-        }
+        
     }
 }
 

@@ -116,6 +116,17 @@ struct ContentView: View {
                                 .font(.system(size: 16 * settings.textScale, weight: .medium))
                                 .foregroundColor(.secondary)
 
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Samples: \(hrStream.series.count)")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                if let last = latestSample {
+                                    Text("Last sample: \(last.time.formatted(date: .omitted, time: .standard))")
+                                        .font(.footnote)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
                             if !autoFollowLatest {
                                 Button("Follow Live") {
                                     autoFollowLatest = true
@@ -181,14 +192,14 @@ struct ContentView: View {
         }
         .preferredColorScheme(settings.theme == .light ? .light : .dark)
         .onAppear {
-            hrStream.start()
+            hrStream.ensureAuthorizedThenStart()
             
             // Motion spike hook
             MotionManager.shared.onSeizureSpike = {
-                DispatchQueue.main.async {
+                //DispatchQueue.main.async {
                     self.lastMotionSpike = Date()
                     self.evaluateCombinedSpike()
-                }
+                //}
             }
             MotionManager.shared.useMockData = true
             MotionManager.shared.start()

@@ -44,6 +44,7 @@ enum Theme: String, CaseIterable, Identifiable {
     }
 }
 
+@MainActor
 class AppSettings: ObservableObject {
     @Published var theme: Theme = .light
     @Published var textScale: CGFloat = 1.0

@@ -16,6 +16,19 @@ struct HeartRatePoint: Identifiable {
 
 // MARK: - Heart Rate Stream
 final class HeartRateStream: ObservableObject {
+    static let shared = HeartRateStream()
+    
+    func receiveLiveBPM(_ bpm: Int) {
+        let point = HeartRatePoint(time: Date(), bpm: bpm)
+
+        latestBPM = bpm
+        series.append(point)
+
+        if series.count > maxPoints {
+            series.removeFirst(series.count - maxPoints)
+        }
+    }
+
     
     @Published var series: [HeartRatePoint] = []
     // UI-observed state (must update on MainActor)
