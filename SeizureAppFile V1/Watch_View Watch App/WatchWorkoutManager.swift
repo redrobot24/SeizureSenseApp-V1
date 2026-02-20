@@ -33,14 +33,15 @@ extension ConnectivityManager: WCSessionDelegate {
     // watchOS and iOS
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("WCSession activation error:", error)
+            print("WCSession activation error:", error.localizedDescription)
         } else {
             print("WCSession activated:", activationState.rawValue)
         }
     }
 }
  
-class WatchWorkoutManager: NSObject, HKLiveWorkoutBuilderDelegate, ObservableObject {
+@MainActor
+final class WatchWorkoutManager: NSObject, HKLiveWorkoutBuilderDelegate, ObservableObject {
     let healthStore = HKHealthStore()
     var session: HKWorkoutSession?
     var builder: HKLiveWorkoutBuilder?

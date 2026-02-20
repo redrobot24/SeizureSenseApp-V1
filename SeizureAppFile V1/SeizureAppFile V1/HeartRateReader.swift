@@ -1,39 +1,22 @@
+import Foundation
 import HealthKit
 
-final class HeartRateReader {
+final class HealthKitManager {
+    static let shared = HealthKitManager()
+    private let healthStore = HKHealthStore()
 
-    private let store = HKHealthStore()
-    private let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+    private init() {}
 
-    private var anchor: HKQueryAnchor?
-    private var query: HKAnchoredObjectQuery?
-
-    func start(onUpdate: @escaping ([HKQuantitySample]) -> Void) {
-
-        query = HKAnchoredObjectQuery(
-            type: type,
-            predicate: nil,
-            anchor: anchor,
-            limit: HKObjectQueryNoLimit
-        ) { [weak self] _, samples, _, newAnchor, error in
-            guard let self else { return }
-            self.anchor = newAnchor
-            onUpdate(samples as? [HKQuantitySample] ?? [])
-        }
-
-        query?.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
-            guard let self else { return }
-            self.anchor = newAnchor
-            onUpdate(samples as? [HKQuantitySample] ?? [])
-        }
-
-        store.execute(query!)
+    private var heartRateType: HKQuantityType {
+        HKQuantityType.quantityType(forIdentifier: .heartRate)!
     }
 
-    func stop() {
-        if let query {
-            store.stop(query)
-        }
-        query = nil
+    func requestAuthorization() async throws {
+        let readTypes: Set = [heartRateType]
+        try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+    }
+
+    func enableBackgroundDelivery() {
+        healthStore.enableBackgroundDelivery(for: heartRateType, frequency: .immediate) { _, _ in }
     }
 }

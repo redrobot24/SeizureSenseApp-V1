@@ -1,105 +1,200 @@
-//
-//  MockHR_and_ACC_data.swift
-//  Maren-View
-//
-//  Created by Maren McCrossan on 1/21/26.
-//
-import Foundation
-import CoreMotion
-import HealthKit
+import SwiftUI
 
-final class MockHR_and_ACC_data {
-    // ACC
-    private let TimeInterval = 1.0 / 50.0 // 50 Hz or 20ms
-    private let accelSpikeDeltaG: Double = 1.5 // change in g magnitude considered a spike
-    private let absoluteMagnitudeThreshold: Double = 3.0 // absolute g magnitude considered a spike
-    private let alignmentWindow: TimeInterval = 5.0 // seconds to wait between spike notifications
-    private let minimumSamplesForDelta: Int = 3
-    //HR
-    private let hrAbsoluteThreshold = 80
-    private let hrSpikeDelta = 10
-    //Managers
-    private let motionManager = CMMotionManager()
-    private let healthStore = HKHealthStore()
-    // state variables
-    private var lastAccelSample: (time: TimeInterval, g: Double)?
-    private var lastHR: (time: TimeInterval, bpm: Int)?
-    private var accelSpikeTimes: [TimeInterval] = []
-    private var hrSpikeTimes: [TimeInterval] = []
-    //Start detection
-    func start() {
-        startAccelerometer()
-        startHeartRate()
+struct Contact: Identifiable, Equatable, Hashable {
+    let id = UUID()
+    var firstName: String
+    var phoneNumber: String
+    var lastMessage: String?
+}
+
+@Observable
+final class MessagingViewModel {
+    var contacts: [Contact] = [] // Start empty
+    
+    func addContact(firstName: String, phone: String) {
+        let name = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phoneTrimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !phoneTrimmed.isEmpty else { return }
+        contacts.append(Contact(firstName: name, phoneNumber: phoneTrimmed, lastMessage: nil))
     }
-    //Accelerometer Motion
-    private func startAccelerometer() {
-        guard motionManager.isAccelerometerAvailable else { return }
-        motionManager.accelerometerUpdateInterval = 0.02 //50Hz
-        motionManager.startAccelerometerUpdates(to: .main) { [weak self] data,_ in
-            guard let self = self, let data = data else { return }
-            let g = sqrt(
-                data.acceleration.x * data.acceleration.x +
-                data.acceleration.y * data.acceleration.y +
-                data.acceleration.z * data.acceleration.z
-            )
-            let time = Date().timeIntervalSince1970
-            if let last = self.lastAccelSample {
-                let deltaG = abs(g - last.g)
-                if deltaG >= self.accelSpikeDeltaG || g >= self.absoluteMagnitudeThreshold {
-                    self.accelSpikeTimes.append(time)
-            }
-        }
-            self.lastAccelSample = (time, g)
-            self.checkForSeizure()
-        }
+    
+    func delete(at offsets: IndexSet) {
+        contacts.remove(atOffsets: offsets)
     }
-    //Heart Rate
-    private func startHeartRate() {
-        guard HKHealthStore.isHealthDataAvailable() else { return }
-        let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
-        let predicate = HKQuery.predicateForSamples(
-            withStart: Date(), end: nil, options: .strictStartDate)
-        let query = HKAnchoredObjectQuery(
-            type: hrType,
-            predicate: predicate,
-            anchor: nil,
-            limit: HKObjectQueryNoLimit)
-        {[weak self]_, samples,_,_,_ in self?.handleHRSamples(samples)}
-        query.updateHandler = { [weak self] _, samples, _, _, _ in self?.handleHRSamples(samples)}
-        healthStore.execute(query)
-        }
-    private func handleHRSamples(_ samples: [HKSample]?) {
-        guard let hrSamples = samples as? [HKQuantitySample] else { return }
-        
-        for sample in hrSamples {
-            let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
-            let time = sample.startDate.timeIntervalSince1970
-            
-            if let last = lastHR {
-                let deltaHR = bpm - last.bpm
-                if deltaHR >= hrSpikeDelta || bpm >= hrAbsoluteThreshold {
-                    hrSpikeTimes.append(time) }
-            }
-        lastHR = (time, bpm)
-        checkForSeizure()
+}
+
+struct MessagingView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var settings: AppSettings
+    
+    @State private var model = MessagingViewModel()
+    @State private var showingAdd = false
+    
+    // Fields for the add-contact form
+    @State private var firstName = ""
+    @State private var phoneNumber = ""
+    @State private var showValidationAlert = false
+    @State private var validationMessage = ""
+    
+    var body: some View {
+        NavigationStack {
+            Group {
+                if model.contacts.isEmpty {
+                    // Empty state
+                    VStack(spacing: 16 * settings.textScale) {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 56 * settings.textScale))
+                            .foregroundStyle(.secondary)
+                        Text("No contacts yet")
+                            .font(.system(size: 18 * settings.textScale, weight: .bold))
+                        Text("Tap the button below to add your first contact.")
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 14 * settings.textScale))
+                        
+                        Button {
+                            showingAdd = true
+                        } label: {
+                            Label("Add Contact", systemImage: "plus.circle.fill")
+                                .font(.system(size: 16 * settings.textScale, weight: .semibold))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top, 4 * settings.textScale)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+                } else {
+                    // Contacts list
+                    List {
+                        ForEach(model.contacts) { contact in
+                            HStack(spacing: 12 * settings.textScale) {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.2))
+                                    .frame(width: 40 * settings.textScale, height: 40 * settings.textScale)
+                                    .overlay(Text(initials(for: contact.firstName))
+                                                .font(.system(size: 16 * settings.textScale, weight: .bold)))
+                                
+                                VStack(alignment: .leading, spacing: 2 * settings.textScale) {
+                                    Text(contact.firstName)
+                                        .font(.system(size: 16 * settings.textScale, weight: .semibold))
+                                    Text(formatPhone(contact.phoneNumber))
+                                        .font(.system(size: 14 * settings.textScale))
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.vertical, 4 * settings.textScale)
+                        }
+                        .onDelete(perform: model.delete)
                     }
                 }
-    //Combination of Accel & HR
-    private func checkForSeizure() {
-        for aTime in accelSpikeTimes {
-            for hTime in hrSpikeTimes {
-                if abs(aTime - hTime) <= alignmentWindow {
-                    triggerSeizureDetected()
-                    accelSpikeTimes.removeAll()
-                    hrSpikeTimes.removeAll()
-                    return
+            }
+            .navigationTitle("Messaging")
+            .navigationBarTitleDisplayMode(.inline)
+            .preferredColorScheme(preferredScheme(for: settings.theme))
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Messaging")
+                        .font(.system(size: 18 * settings.textScale, weight: .bold))
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingAdd = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 18 * settings.textScale))
+                    }
+                    .accessibilityLabel("Add Contact")
+                }
+            }
+            // Add-contact sheet
+            .sheet(isPresented: $showingAdd, onDismiss: resetForm) {
+                NavigationStack {
+                    Form {
+                        Section("Contact Info") {
+                            TextField("First Name", text: $firstName)
+                                .textContentType(.givenName)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled(true)
+                                .font(.system(size: 16 * settings.textScale))
+                            
+                            TextField("Phone Number", text: $phoneNumber)
+                                .keyboardType(.phonePad)
+                                .textContentType(.telephoneNumber)
+                                .font(.system(size: 16 * settings.textScale))
+                        }
+                    }
+                    .navigationTitle("New Contact")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .preferredColorScheme(preferredScheme(for: settings.theme))
+                    .toolbar {
+                        ToolbarItem(placement: .principal) {
+                            Text("New Contact")
+                                .font(.system(size: 16 * settings.textScale, weight: .bold))
+                        }
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showingAdd = false }
+                                .font(.system(size: 16 * settings.textScale))
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Add") { addContactValidated() }
+                                .font(.system(size: 16 * settings.textScale))
+                                .disabled(firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                                          phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+                    .alert("Invalid Contact", isPresented: $showValidationAlert) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text(validationMessage)
+                            .font(.system(size: 14 * settings.textScale))
+                    }
+                }
             }
         }
     }
-            }
-            // Detection Event
-    private func triggerSeizureDetected() {
-        print("Seizure Detected!")
+    
+    private func addContactValidated() {
+        let allowed = CharacterSet(charactersIn: "+- ()0123456789")
+        let isValidPhone = phoneNumber.unicodeScalars.allSatisfy { allowed.contains($0) }
+        
+        guard isValidPhone else {
+            validationMessage = "Please enter a valid phone number (digits and +, -, spaces, or parentheses)."
+            showValidationAlert = true
+            return
+        }
+        
+        model.addContact(firstName: firstName, phone: phoneNumber)
+        showingAdd = false
+        resetForm()
     }
+    
+    private func resetForm() {
+        firstName = ""
+        phoneNumber = ""
     }
+    
+    private func initials(for name: String) -> String {
+        let parts = name.split(separator: " ")
+        let letters = parts.prefix(2).compactMap { $0.first?.uppercased() }
+        return letters.joined()
+    }
+    
+    private func formatPhone(_ phone: String) -> String {
+        phone.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+    }
+    
+    private func preferredScheme(for theme: Theme) -> ColorScheme? {
+        switch theme {
+        case .light: return .light
+        case .dark: return .dark
+        default: return nil
+        }
+    }
+}
 
+#Preview {
+    MessagingView()
+        .environmentObject(AppSettings())
+}

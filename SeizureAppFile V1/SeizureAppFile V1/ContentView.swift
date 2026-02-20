@@ -16,6 +16,7 @@ struct ContentView: View {
     @EnvironmentObject var settings: AppSettings
     @StateObject private var connectivity = PhoneConnectivityManager()
     
+    
     // MARK: - Seizure / Alert State
     @State private var seizureDetected = false
     @State private var isFlashing = false

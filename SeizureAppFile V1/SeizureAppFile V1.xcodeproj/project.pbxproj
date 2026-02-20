@@ -9,6 +9,7 @@
 /* Begin PBXFileReference section */
 		99221EAF2F4532DD00143C55 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		99221EB02F45330100143C55 /* WatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
+		99CA14DD2F48D39C005E70D8 /* WatchHeartRateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHeartRateManager.swift; sourceTree = "<group>"; };
 		99D660C12F3BF435006820FE /* Watch_ViewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Watch_ViewApp.swift; sourceTree = "<group>"; };
 		99D660C22F3BF44A006820FE /* WatchHealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHealthKitManager.swift; sourceTree = "<group>"; };
 		99D660C32F3BF476006820FE /* WatchWorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManager.swift; sourceTree = "<group>"; };
@@ -39,6 +40,7 @@
 			children = (
 				99D660C12F3BF435006820FE /* Watch_ViewApp.swift */,
 				99D660C32F3BF476006820FE /* WatchWorkoutManager.swift */,
+				99CA14DD2F48D39C005E70D8 /* WatchHeartRateManager.swift */,
 				99221EAF2F4532DD00143C55 /* WatchConnectivityManager.swift */,
 				99221EB02F45330100143C55 /* WatchContentView.swift */,
 				99D660C22F3BF44A006820FE /* WatchHealthKitManager.swift */,
